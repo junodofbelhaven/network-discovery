@@ -47,13 +47,13 @@ make docker-compose-up
 
 ### Temel Endpoints
 
-| Method | Endpoint                     | Açıklama               |
-| ------ | ---------------------------- | ---------------------- |
-| GET    | `/api/v1/health`             | Servis durumu kontrolü |
-| GET    | `/api/v1/version`            | Versiyon bilgisi       |
-| POST   | `/api/v1/network/scan`       | Ağ taraması başlat     |
-| GET    | `/api/v1/network/quick-scan` | Hızlı cihaz keşfi      |
-| GET    | `/api/v1/device/{ip}`        | Tek cihaz taraması     |
+| Method | Endpoint                                    | Açıklama               |
+| ------ | ------------------------------------------- | ---------------------- |
+| GET    | `/api/v1/health`                            | Servis durumu kontrolü |
+| GET    | `/api/v1/version`                           | Versiyon bilgisi       |
+| POST   | `/api/v1/network/scan`                      | Ağ taraması başlat     |
+| GET    | `/api/v1/network/quick-scan`                | Hızlı cihaz keşfi      |
+| GET    | `/api/v1/device/{ip}?community={community}` | Tek cihaz taraması     |
 
 ### Ağ Taraması
 
