@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Discovery Tool</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🌐 Network Discovery Tool</h1>
+        <p>Discover and analyze SNMP-enabled devices in your network</p>
+      </div>
+
+      <div class="card">
+        <form class="scan-form" id="scanForm">
+          <div class="form-group">
+            <label for="networkRange">Network Range (CIDR)</label>
+            <input
+              type="text"
+              id="networkRange"
+              placeholder="192.168.1.0/24"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="communities">SNMP Communities (comma-separated)</label>
+            <input
+              type="text"
+              id="communities"
+              placeholder="public,private,community"
+              value="public"
+            />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+            <div class="form-group">
+              <label for="timeout">Timeout (seconds)</label>
+              <input type="number" id="timeout" value="5" min="1" max="30" />
+            </div>
+
+            <div class="form-group">
+              <label for="retries">Retries</label>
+              <input type="number" id="retries" value="2" min="0" max="5" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn">Start Network Scan</button>
+        </form>
+      </div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Scanning network... This may take a few minutes.</p>
+      </div>
+
+      <div class="results" id="results">
+        <div class="card">
+          <h2>Scan Results</h2>
+
+          <div class="stats" id="stats">
+            <!-- Stats will be populated here -->
+          </div>
+
+          <div class="devices-grid" id="devicesGrid">
+            <!-- Devices will be populated here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="error" id="error" style="display: none">
+        <!-- Error messages will appear here -->
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
