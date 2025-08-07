@@ -36,6 +36,9 @@ go run cmd/main.go
 ```
 
 ## Web GUI'ına bağlanma
+
+## <img width="1775" height="691" alt="image" src="https://github.com/user-attachments/assets/e027deab-6732-4690-ad4c-49f9371ec50d" />
+
 Uygulama şuanda GUI olarak sadece belirtilen ip aralığında scan yapmaya yarayan bir web page sunuyor. GUI'a bağlanmak için;
 
 - Uygulamayı başlatın
@@ -280,6 +283,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
 
 
 
