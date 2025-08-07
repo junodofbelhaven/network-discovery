@@ -279,10 +279,13 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ## Planlanan geliştirme
 
 - 🐳 **Docker Desteği**: Kolay kurulum ve deployment
+- 🔒 **SNMPv3 Desteği**: Authorization ve encryption desteği
+- ❗️ **IMCP ile Ping**: SNMP desteklemeyen cihazlara ping yollayarak ağı tarama
 
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
 
 
 
