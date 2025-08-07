@@ -35,6 +35,11 @@ go mod tidy
 go run cmd/main.go
 ```
 
+## Web GUI'ına bağlanma
+Uygulama şuanda GUI olarak sadece belirtilen ip aralığında scan yapmaya yarayan bir web page sunuyor. GUI'a bağlanmak için;
+
+- Uygulamayı başlatın
+- Herhangi bir web browserdan localhost:{port}/index sayfasına girin (Belirtilmediği sürece varsayılan port 8080 olarak başlar)
 
 ## 📖 API Dokümantasyonu
 
@@ -275,5 +280,6 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
 
 
