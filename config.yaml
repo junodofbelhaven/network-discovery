@@ -1,0 +1,147 @@
+# Network Discovery Service Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+  read_timeout: 30s
+  write_timeout: 30s
+  idle_timeout: 60s
+
+snmp:
+  # Default timeout for SNMP requests
+  timeout: 5s
+
+  # Number of retries for failed requests
+  retries: 2
+
+  # Default SNMP communities to try
+  default_communities:
+    - "public"
+    - "private"
+    - "community"
+    - "admin"
+    - "monitor"
+
+  # SNMP version (currently only v2c is supported)
+  version: "2c"
+
+  # SNMP port
+  port: 161
+
+scanning:
+  # Maximum number of concurrent workers for network scanning
+  max_workers: 50
+
+  # Default network ranges to scan (if not specified)
+  default_ranges:
+    - "192.168.1.0/24"
+    - "192.168.0.0/24"
+    - "10.0.0.0/24"
+
+  # Maximum scan duration (to prevent runaway scans)
+  max_scan_duration: 10m
+
+  # Quick scan timeout (for reachability checks)
+  quick_scan_timeout: 2s
+
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+
+  # Log format: json, text
+  format: "json"
+
+  # Log output: stdout, stderr, file
+  output: "stdout"
+
+  # Log file path (if output is file)
+  file_path: "/var/log/network-discovery.log"
+
+  # Enable request logging
+  enable_request_logging: true
+
+security:
+  # Enable CORS
+  enable_cors: true
+
+  # Allowed origins for CORS
+  cors_origins:
+    - "*"
+
+  # API rate limiting (requests per minute)
+  rate_limit: 100
+
+  # Enable API authentication (future feature)
+  enable_auth: false
+
+features:
+  # Enable device fingerprinting
+  enable_fingerprinting: true
+
+  # Enable topology discovery (future feature)
+  enable_topology: false
+
+  # Enable SNMP trap reception (future feature)
+  enable_traps: false
+
+  # Enable device monitoring (future feature)
+  enable_monitoring: false
+
+# Custom vendor detection patterns
+vendor_patterns:
+  cisco:
+    - "cisco"
+    - "ios"
+    - "catalyst"
+    - "nexus"
+    - "asa"
+
+  juniper:
+    - "juniper"
+    - "junos"
+    - "srx"
+    - "mx"
+    - "ex"
+    - "qfx"
+
+  huawei:
+    - "huawei"
+    - "vrp"
+    - "s5700"
+    - "s6700"
+    - "cloudengine"
+
+  hp:
+    - "hp"
+    - "hewlett"
+    - "packard"
+    - "procurve"
+    - "aruba"
+
+  dell:
+    - "dell"
+    - "powerconnect"
+    - "force10"
+    - "os10"
+
+  mikrotik:
+    - "mikrotik"
+    - "routeros"
+    - "routerboard"
+
+# Performance tuning
+performance:
+  # Enable response caching
+  enable_caching: true
+
+  # Cache TTL for device information
+  cache_ttl: 5m
+
+  # Maximum memory usage for caching (MB)
+  max_cache_size: 100
+
+  # Enable connection pooling
+  enable_pooling: true
+
+  # Maximum connections per host
+  max_connections: 10
