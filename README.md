@@ -35,12 +35,6 @@ go mod tidy
 go run cmd/main.go
 ```
 
-### Docker ile Çalıştırma
-
-```bash
-# Docker image'ını oluştur ve çalıştır
-make docker-compose-up
-```
 
 ## 📖 API Dokümantasyonu
 
@@ -288,3 +282,4 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
