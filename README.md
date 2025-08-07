@@ -215,17 +215,9 @@ Uygulama aşağıdaki SNMP OID'lerini kullanır:
 
 SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 
-- Varsayılan community'leri (`public`, `private`) değiştirin
-- Güçlü, tahmin edilmesi zor community'ler kullanın
-- SNMP v3 kullanımını tercih edin (gelecek sürümlerde desteklenecek)
-- Network ACL'leri ile SNMP erişimini sınırlayın
+- SNMPyi sadece güvenli ağlarda kullanın 
 
-### API Güvenliği
 
-- Rate limiting aktif
-- CORS yapılandırması mevcut
-- Input validasyonu yapılır
-- Log kayıtları tutulur
 
 ## 🐛 Sorun Giderme
 
@@ -237,6 +229,7 @@ SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 - Community string'lerin doğru olduğunu doğrulayın
 - Firewall kurallarını kontrol edin (UDP 161 portu)
 - Network connectivity'yi test edin
+- SNMP servisinin güvenlik kısmından hangi bağlantılardan bağlantı kabul ettiğini kontrol edin
 
 **Yavaş tarama:**
 
@@ -282,4 +275,5 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
 
