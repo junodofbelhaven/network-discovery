@@ -34,10 +34,10 @@ func main() {
 	logger.SetLevel(level)
 	logger.SetFormatter(&logrus.JSONFormatter{})
 
-	logger.Info("Starting Network Discovery Service")
+	logger.Infof("Starting Network Discovery Service with log level: %s", *logLevel)
 
-	// Create network discovery service
-	networkDiscovery := discovery.NewNetworkDiscovery()
+	// Create network discovery service with custom log level
+	networkDiscovery := discovery.NewNetworkDiscoveryWithLogLevel(level)
 
 	// Setup routes
 	router := api.SetupRoutes(networkDiscovery)
@@ -57,6 +57,7 @@ func main() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Server failed to start: %v", err)
 		}
+		fmt.Printf("log leve: %s", *logLevel)
 	}()
 
 	// Print startup information

@@ -28,7 +28,14 @@ func NewScanner(client *Client, maxWorkers int) *Scanner {
 	}
 }
 
-// ScanNetwork scans a network range for SNMP-enabled devices
+func NewScannerWithLogger(client *Client, maxWorkers int, logger *logrus.Logger) *Scanner {
+	return &Scanner{
+		client:     client,
+		logger:     logger,
+		maxWorkers: maxWorkers,
+	}
+}
+
 func (s *Scanner) ScanNetwork(networkRange string, communities []string) (*models.NetworkTopology, error) {
 	start := time.Now()
 
@@ -59,6 +66,8 @@ func (s *Scanner) ScanNetwork(networkRange string, communities []string) (*model
 		workers = len(ips)
 	}
 
+	s.logger.Infof("Starting %d workers for scanning", workers)
+
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go s.worker(ipChan, resultChan, communities, &wg)
@@ -79,6 +88,7 @@ func (s *Scanner) ScanNetwork(networkRange string, communities []string) (*model
 			devices = append(devices, *device)
 			if device.IsReachable {
 				reachableCount++
+				s.logger.Infof("Found SNMP device: %s (%s)", device.IP, device.Hostname)
 			}
 		}
 	}
@@ -103,67 +113,20 @@ func (s *Scanner) worker(ipChan <-chan string, resultChan chan<- *models.Device,
 	defer wg.Done()
 
 	for ip := range ipChan {
+		s.logger.Debugf("Scanning IP: %s", ip)
+
 		device, err := s.client.QueryDevice(ip, communities)
 		if err != nil {
 			s.logger.Debugf("Failed to query %s: %v", ip, err)
-			// Still add the device even if unreachable
-			resultChan <- &models.Device{
-				IP:          ip,
-				IsReachable: false,
-				LastSeen:    time.Now(),
-			}
+			// Sadece reachable olanları ekleyelim
+			// resultChan <- nil // Unreachable cihazları ekleme
 		} else {
+			s.logger.Debugf("Successfully queried %s", ip)
 			resultChan <- device
 		}
 	}
 }
 
-func (s *Scanner) parseNetworkRange(networkRange string) ([]string, error) {
-	_, ipNet, err := net.ParseCIDR(networkRange)
-	if err != nil {
-		return nil, fmt.Errorf("invalid CIDR notation: %v", err)
-	}
-
-	var ips []string
-
-	// Generate all IPs in the network
-	for ip := ipNet.IP.Mask(ipNet.Mask); ipNet.Contains(ip); s.incrementIP(ip) {
-		// Skip network and broadcast addresses
-		if !s.isNetworkOrBroadcast(ip, ipNet) {
-			ips = append(ips, ip.String())
-		}
-	}
-
-	return ips, nil
-}
-
-func (s *Scanner) incrementIP(ip net.IP) {
-	for j := len(ip) - 1; j >= 0; j-- {
-		ip[j]++
-		if ip[j] > 0 {
-			break
-		}
-	}
-}
-
-func (s *Scanner) isNetworkOrBroadcast(ip net.IP, ipNet *net.IPNet) bool {
-	// Check if it's the network address
-	if ip.Equal(ipNet.IP.Mask(ipNet.Mask)) {
-		return true
-	}
-
-	// Check if it's the broadcast address
-	broadcast := make(net.IP, len(ipNet.IP))
-	copy(broadcast, ipNet.IP.Mask(ipNet.Mask))
-
-	for i := range broadcast {
-		broadcast[i] |= ^ipNet.Mask[i]
-	}
-
-	return ip.Equal(broadcast)
-}
-
-// ScanSingleDevice scans a single device
 func (s *Scanner) ScanSingleDevice(ip string, communities []string) (*models.Device, error) {
 	s.logger.Infof("Scanning single device: %s", ip)
 
@@ -175,7 +138,6 @@ func (s *Scanner) ScanSingleDevice(ip string, communities []string) (*models.Dev
 	return device, nil
 }
 
-// QuickScan performs a quick reachability check
 func (s *Scanner) QuickScan(networkRange string, communities []string) ([]string, error) {
 	ips, err := s.parseNetworkRange(networkRange)
 	if err != nil {
@@ -206,6 +168,7 @@ func (s *Scanner) QuickScan(networkRange string, communities []string) ([]string
 					mu.Lock()
 					reachableIPs = append(reachableIPs, ip)
 					mu.Unlock()
+					s.logger.Debugf("Quick scan found reachable device: %s", ip)
 				}
 			}
 		}()
@@ -215,4 +178,50 @@ func (s *Scanner) QuickScan(networkRange string, communities []string) ([]string
 
 	s.logger.Infof("Quick scan found %d reachable devices", len(reachableIPs))
 	return reachableIPs, nil
+}
+
+func (s *Scanner) parseNetworkRange(networkRange string) ([]string, error) {
+	_, ipNet, err := net.ParseCIDR(networkRange)
+	if err != nil {
+		return nil, fmt.Errorf("invalid CIDR notation: %v", err)
+	}
+
+	var ips []string
+
+	// Generate all IPs in the network
+	for ip := ipNet.IP.Mask(ipNet.Mask); ipNet.Contains(ip); s.incrementIP(ip) {
+		// Skip network and broadcast addresses
+		if !s.isNetworkOrBroadcast(ip, ipNet) {
+			ips = append(ips, ip.String())
+		}
+	}
+
+	s.logger.Debugf("Generated %d IPs from range %s", len(ips), networkRange)
+	return ips, nil
+}
+
+func (s *Scanner) incrementIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
+}
+
+func (s *Scanner) isNetworkOrBroadcast(ip net.IP, ipNet *net.IPNet) bool {
+	// Check if it's the network address
+	if ip.Equal(ipNet.IP.Mask(ipNet.Mask)) {
+		return true
+	}
+
+	// Check if it's the broadcast address
+	broadcast := make(net.IP, len(ipNet.IP))
+	copy(broadcast, ipNet.IP.Mask(ipNet.Mask))
+
+	for i := range broadcast {
+		broadcast[i] |= ^ipNet.Mask[i]
+	}
+
+	return ip.Equal(broadcast)
 }

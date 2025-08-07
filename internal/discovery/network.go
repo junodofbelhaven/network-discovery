@@ -46,7 +46,31 @@ func NewNetworkDiscovery() *NetworkDiscovery {
 	}
 }
 
-// DiscoverNetwork performs a full network discovery
+func NewNetworkDiscoveryWithLogLevel(level logrus.Level) *NetworkDiscovery {
+	logger := logrus.New()
+	logger.SetLevel(level)
+	logger.SetFormatter(&logrus.JSONFormatter{})
+
+	// Create SNMP client with default settings and custom logger
+	client := snmp.NewClientWithLogger(time.Second*5, 2, logger)
+
+	// Create scanner with 50 concurrent workers and custom logger
+	scanner := snmp.NewScannerWithLogger(client, 50, logger)
+
+	return &NetworkDiscovery{
+		scanner: scanner,
+		logger:  logger,
+		defaultCommunities: []string{
+			"public",
+			"private",
+			"community",
+			"admin",
+		},
+		defaultTimeout: time.Second * 5,
+		defaultRetries: 2,
+	}
+}
+
 func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.NetworkTopology, error) {
 	nd.logger.Infof("Starting network discovery for range: %s", req.NetworkRange)
 
@@ -54,12 +78,21 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 	communities := req.Communities
 	if len(communities) == 0 {
 		communities = nd.defaultCommunities
+		nd.logger.Infof("Using default communities: %v", communities)
+	} else {
+		nd.logger.Infof("Using provided communities: %v", communities)
 	}
 
 	// Update client settings if provided
 	if req.Timeout > 0 {
-		client := snmp.NewClient(time.Duration(req.Timeout)*time.Second, req.Retries)
-		nd.scanner = snmp.NewScanner(client, 50)
+		nd.logger.Infof("Using custom timeout: %d seconds", req.Timeout)
+		var client *snmp.Client
+		if nd.logger.Level == logrus.DebugLevel {
+			client = snmp.NewClientWithLogger(time.Duration(req.Timeout)*time.Second, req.Retries, nd.logger)
+		} else {
+			client = snmp.NewClient(time.Duration(req.Timeout)*time.Second, req.Retries)
+		}
+		nd.scanner = snmp.NewScannerWithLogger(client, 50, nd.logger)
 	}
 
 	// Perform the scan
@@ -74,7 +107,6 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 	return topology, nil
 }
 
-// DiscoverDevice discovers a single device
 func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*models.Device, error) {
 	nd.logger.Infof("Discovering single device: %s", ip)
 
@@ -90,7 +122,6 @@ func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*mo
 	return device, nil
 }
 
-// QuickDiscovery performs a quick scan to find reachable devices
 func (nd *NetworkDiscovery) QuickDiscovery(networkRange string, communities []string) ([]string, error) {
 	nd.logger.Infof("Starting quick discovery for range: %s", networkRange)
 
@@ -107,7 +138,6 @@ func (nd *NetworkDiscovery) QuickDiscovery(networkRange string, communities []st
 	return reachableIPs, nil
 }
 
-// GetNetworkStatistics returns network statistics
 func (nd *NetworkDiscovery) GetNetworkStatistics(topology *models.NetworkTopology) map[string]interface{} {
 	stats := make(map[string]interface{})
 
@@ -161,7 +191,6 @@ func (nd *NetworkDiscovery) GetNetworkStatistics(topology *models.NetworkTopolog
 	return stats
 }
 
-// ValidateNetworkRange validates if the network range is valid
 func (nd *NetworkDiscovery) ValidateNetworkRange(networkRange string) error {
 	_, err := nd.scanner.QuickScan(networkRange, []string{"public"})
 	if err != nil {

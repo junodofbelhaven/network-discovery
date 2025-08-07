@@ -11,7 +11,6 @@ SNMP protokolü ile ağ topolojisini analiz eden, Go ile yazılmış modern bir 
 - ⏱️ **Yanıt Süresi Ölçümü**: Her cihaz için ağ gecikmesini ölçer
 - 🌐 **REST API**: RESTful web servisleri ile kolay entegrasyon
 - 💻 **Web Arayüzü**: Kullanıcı dostu web tabanlı kontrol paneli
-- 🐳 **Docker Desteği**: Kolay kurulum ve deployment
 - 📊 **Detaylı Raporlama**: Ağ istatistikleri ve cihaz envantери
 
 ## 🚀 Hızlı Başlangıç
@@ -26,14 +25,14 @@ SNMP protokolü ile ağ topolojisini analiz eden, Go ile yazılmış modern bir 
 
 ```bash
 # Projeyi klonla
-git clone <repository-url>
+git clone https://github.com/junodofbelhaven/network-discovery.git
 cd network-discovery
 
 # Bağımlılıkları yükle
 go mod tidy
 
 # Uygulamayı çalıştır
-make dev
+go run cmd/main.go
 ```
 
 ### Docker ile Çalıştırma
@@ -47,13 +46,13 @@ make docker-compose-up
 
 ### Temel Endpoints
 
-| Method | Endpoint                                    | Açıklama               |
-| ------ | ------------------------------------------- | ---------------------- |
-| GET    | `/api/v1/health`                            | Servis durumu kontrolü |
-| GET    | `/api/v1/version`                           | Versiyon bilgisi       |
-| POST   | `/api/v1/network/scan`                      | Ağ taraması başlat     |
-| GET    | `/api/v1/network/quick-scan`                | Hızlı cihaz keşfi      |
-| GET    | `/api/v1/device/{ip}?community={community}` | Tek cihaz taraması     |
+| Method | Endpoint                     | Açıklama               |
+| ------ | ---------------------------- | ---------------------- |
+| GET    | `/api/v1/health`             | Servis durumu kontrolü |
+| GET    | `/api/v1/version`            | Versiyon bilgisi       |
+| POST   | `/api/v1/network/scan`       | Ağ taraması başlat     |
+| GET    | `/api/v1/network/quick-scan` | Hızlı cihaz keşfi      |
+| GET    | `/api/v1/device/{ip}`        | Tek cihaz taraması     |
 
 ### Ağ Taraması
 
@@ -154,8 +153,138 @@ network-discovery/
 └── README.md             # Dokümantasyon
 ```
 
-### Komutlar
+## 🔧 Konfigürasyon
+
+Uygulama `config.yaml` dosyası ile yapılandırılabilir:
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+snmp:
+  timeout: 5s
+  retries: 2
+  default_communities:
+    - "public"
+    - "private"
+    - "community"
+
+scanning:
+  max_workers: 50
+  max_scan_duration: 10m
+
+logging:
+  level: "info"
+  format: "json"
+```
+
+### Ortam Değişkenleri
+
+| Değişken       | Açıklama               | Varsayılan |
+| -------------- | ---------------------- | ---------- |
+| `SERVER_PORT`  | HTTP sunucu portu      | `8080`     |
+| `LOG_LEVEL`    | Log seviyesi           | `info`     |
+| `SNMP_TIMEOUT` | SNMP timeout           | `5s`       |
+| `MAX_WORKERS`  | Maksimum worker sayısı | `50`       |
+
+## 📊 Desteklenen Cihazlar
+
+### Vendor Desteği
+
+- ✅ **Cisco**: IOS, NX-OS, IOS-XE, ASA
+- ✅ **Juniper**: JunOS (SRX, MX, EX, QFX serisi)
+- ✅ **Huawei**: VRP (S5700, S6700, CloudEngine)
+- ✅ **HP/HPE**: ProCurve, Aruba
+- ✅ **Dell**: PowerConnect, Force10, OS10
+- ✅ **MikroTik**: RouterOS, RouterBoard
+- ✅ **Ubiquiti**: UniFi, EdgeMax
+- ✅ **Fortinet**: FortiGate, FortiOS
+- ✅ **Palo Alto**: PA serisi
+- ✅ **Netgear**: ProSafe serisi
+- ✅ **D-Link**: DGS, DES serisi
+- ✅ **TP-Link**: Managed switch'ler
+
+### SNMP Bilgileri
+
+Uygulama aşağıdaki SNMP OID'lerini kullanır:
+
+- `1.3.6.1.2.1.1.1.0` - System Description
+- `1.3.6.1.2.1.1.5.0` - System Name
+- `1.3.6.1.2.1.1.4.0` - System Contact
+- `1.3.6.1.2.1.1.6.0` - System Location
+- `1.3.6.1.2.1.1.3.0` - System Uptime
+
+## 🔒 Güvenlik
+
+### SNMP Community Strings
+
+SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
+
+- Varsayılan community'leri (`public`, `private`) değiştirin
+- Güçlü, tahmin edilmesi zor community'ler kullanın
+- SNMP v3 kullanımını tercih edin (gelecek sürümlerde desteklenecek)
+- Network ACL'leri ile SNMP erişimini sınırlayın
+
+### API Güvenliği
+
+- Rate limiting aktif
+- CORS yapılandırması mevcut
+- Input validasyonu yapılır
+- Log kayıtları tutulur
+
+## 🐛 Sorun Giderme
+
+### Yaygın Sorunlar
+
+**Cihazlar keşfedilmiyor:**
+
+- SNMP servisinin aktif olduğunu kontrol edin
+- Community string'lerin doğru olduğunu doğrulayın
+- Firewall kurallarını kontrol edin (UDP 161 portu)
+- Network connectivity'yi test edin
+
+**Yavaş tarama:**
+
+- Worker sayısını artırın (`max_workers`)
+- Timeout değerini azaltın
+
+**Memory kullanımı yüksek:**
+
+- Worker sayısını azaltın
+- Tarama aralığını küçültün
+
+### Debug Modu
 
 ```bash
-# Geliştirme modunda ç
+# Debug logları ile çalıştır
+./network-discovery -log-level=debug
+
+# Belirli bir cihazı test et
+curl "http://localhost:8080/api/v1/device/192.168.1.1?community=public"
 ```
+
+### Log Analizi
+
+```bash
+# Başarılı taramaları filtrele
+grep "Successfully queried device" /var/log/network-discovery.log
+
+# Hata mesajlarını görüntüle
+grep "ERROR" /var/log/network-discovery.log
+
+# Performans metrikleri
+grep "Scan completed" /var/log/network-discovery.log
+```
+
+## 📝 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
+
+## Planlanan geliştirme
+
+- 🐳 **Docker Desteği**: Kolay kurulum ve deployment
+
+##
+
+⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**

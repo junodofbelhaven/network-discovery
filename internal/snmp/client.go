@@ -37,6 +37,14 @@ func NewClient(timeout time.Duration, retries int) *Client {
 	}
 }
 
+func NewClientWithLogger(timeout time.Duration, retries int, logger *logrus.Logger) *Client {
+	return &Client{
+		timeout: timeout,
+		retries: retries,
+		logger:  logger,
+	}
+}
+
 // QueryDevice queries a single device using SNMP
 func (c *Client) QueryDevice(ip string, communities []string) (*models.Device, error) {
 	device := &models.Device{
@@ -47,21 +55,34 @@ func (c *Client) QueryDevice(ip string, communities []string) (*models.Device, e
 
 	start := time.Now()
 
-	for _, community := range communities {
+	c.logger.Debugf("Starting SNMP query for %s with communities: %v", ip, communities)
+
+	for i, community := range communities {
+		c.logger.Debugf("Trying community %d/%d: '%s' for %s", i+1, len(communities), community, ip)
+
 		if err := c.queryWithCommunity(ip, community, device); err == nil {
 			device.IsReachable = true
 			device.Community = community
 			device.ResponseTime = time.Since(start).Milliseconds()
+
 			c.logger.Infof("Successfully queried device %s with community '%s'", ip, community)
+			c.logger.Debugf("Device details: hostname='%s', description='%s', vendor='%s'",
+				device.Hostname, device.Description, device.Vendor)
+
 			return device, nil
+		} else {
+			c.logger.Debugf("Failed with community '%s': %v", community, err)
 		}
 	}
 
 	device.ResponseTime = time.Since(start).Milliseconds()
+	c.logger.Warnf("Failed to query device %s with any community", ip)
 	return device, fmt.Errorf("failed to query device %s with any community", ip)
 }
 
 func (c *Client) queryWithCommunity(ip, community string, device *models.Device) error {
+	c.logger.Debugf("Attempting SNMP connection to %s with community '%s'", ip, community)
+
 	// Create SNMP client
 	client := &gosnmp.GoSNMP{
 		Target:    ip,
@@ -72,74 +93,153 @@ func (c *Client) queryWithCommunity(ip, community string, device *models.Device)
 		Retries:   c.retries,
 	}
 
+	c.logger.Debugf("SNMP client config: Target=%s, Port=161, Community=%s, Timeout=%v, Retries=%d",
+		ip, community, c.timeout, c.retries)
+
 	err := client.Connect()
 	if err != nil {
+		c.logger.Debugf("SNMP connection failed to %s: %v", ip, err)
 		return fmt.Errorf("failed to connect to %s: %v", ip, err)
 	}
 	defer client.Conn.Close()
 
-	// Query multiple OIDs at once
-	oids := []string{
-		OIDSysDescr,
-		OIDSysName,
-		OIDSysContact,
-		OIDSysLocation,
-		OIDSysUptime,
+	c.logger.Debugf("SNMP connection established to %s", ip)
+
+	// Query OIDs one by one instead of bulk query
+	oidQueries := map[string]string{
+		OIDSysDescr:    "System Description",
+		OIDSysName:     "System Name",
+		OIDSysContact:  "System Contact",
+		OIDSysLocation: "System Location",
+		OIDSysUptime:   "System Uptime",
 	}
 
-	result, err := client.Get(oids)
-	if err != nil {
-		return fmt.Errorf("SNMP GET failed for %s: %v", ip, err)
-	}
+	for oid, name := range oidQueries {
+		c.logger.Debugf("Querying %s (%s)", name, oid)
 
-	// Parse results
-	for _, variable := range result.Variables {
-		switch variable.Name {
+		result, err := client.Get([]string{oid})
+		if err != nil {
+			c.logger.Debugf("Failed to query %s: %v", name, err)
+			continue // Skip this OID but continue with others
+		}
+
+		if len(result.Variables) == 0 {
+			c.logger.Debugf("No variables returned for %s", name)
+			continue
+		}
+
+		variable := result.Variables[0]
+		c.logger.Debugf("Variable Type for %s: %v", name, variable.Type)
+
+		if variable.Type == gosnmp.NoSuchObject || variable.Type == gosnmp.NoSuchInstance {
+			c.logger.Debugf("No such object/instance for %s", name)
+			continue
+		}
+
+		// Parse the result
+		switch oid {
 		case OIDSysDescr:
 			device.Description = c.parseString(variable)
-			c.parseVendorAndVersion(device)
+			c.logger.Debugf("System Description parsed: '%s'", device.Description)
+			// Safely parse vendor and version
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						c.logger.Errorf("Error in parseVendorAndVersion: %v", r)
+					}
+				}()
+				c.parseVendorAndVersion(device)
+			}()
 		case OIDSysName:
 			device.Hostname = c.parseString(variable)
+			c.logger.Debugf("System Name parsed: '%s'", device.Hostname)
 		case OIDSysContact:
 			device.Contact = c.parseString(variable)
+			c.logger.Debugf("System Contact parsed: '%s'", device.Contact)
 		case OIDSysLocation:
 			device.Location = c.parseString(variable)
+			c.logger.Debugf("System Location parsed: '%s'", device.Location)
 		case OIDSysUptime:
 			device.Uptime = c.parseUptime(variable)
+			c.logger.Debugf("System Uptime parsed: '%s'", device.Uptime)
 		}
 	}
 
+	// Check if we got at least some data
+	if device.Description == "" && device.Hostname == "" && device.Contact == "" && device.Location == "" && device.Uptime == "" {
+		return fmt.Errorf("no SNMP data retrieved from %s", ip)
+	}
+
+	c.logger.Debugf("Successfully retrieved SNMP data from %s", ip)
 	return nil
 }
 
 func (c *Client) parseString(variable gosnmp.SnmpPDU) string {
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Errorf("Error parsing SNMP variable: %v", r)
+		}
+	}()
+
 	switch variable.Type {
 	case gosnmp.OctetString:
-		return string(variable.Value.([]byte))
+		if variable.Value != nil {
+			if bytes, ok := variable.Value.([]byte); ok {
+				return strings.TrimSpace(string(bytes))
+			}
+		}
+		return ""
+	case gosnmp.Integer:
+		if variable.Value != nil {
+			return fmt.Sprintf("%d", variable.Value)
+		}
+		return ""
 	default:
-		return fmt.Sprintf("%v", variable.Value)
+		if variable.Value != nil {
+			return strings.TrimSpace(fmt.Sprintf("%v", variable.Value))
+		}
+		return ""
 	}
 }
 
 func (c *Client) parseUptime(variable gosnmp.SnmpPDU) string {
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Errorf("Error parsing uptime: %v", r)
+		}
+	}()
+
 	switch variable.Type {
 	case gosnmp.TimeTicks:
-		ticks := variable.Value.(uint32)
-		seconds := ticks / 100
+		if variable.Value != nil {
+			if ticks, ok := variable.Value.(uint32); ok {
+				seconds := ticks / 100
 
-		days := seconds / 86400
-		hours := (seconds % 86400) / 3600
-		minutes := (seconds % 3600) / 60
-		secs := seconds % 60
+				days := seconds / 86400
+				hours := (seconds % 86400) / 3600
+				minutes := (seconds % 3600) / 60
+				secs := seconds % 60
 
-		return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, secs)
+				return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, secs)
+			}
+		}
+		return ""
 	default:
-		return fmt.Sprintf("%v", variable.Value)
+		if variable.Value != nil {
+			return fmt.Sprintf("%v", variable.Value)
+		}
+		return ""
 	}
 }
 
 func (c *Client) parseVendorAndVersion(device *models.Device) {
+	if device.Description == "" {
+		c.logger.Debugf("No description to parse for vendor detection")
+		return
+	}
+
 	desc := strings.ToLower(device.Description)
+	c.logger.Debugf("Parsing description for vendor: %s", desc)
 
 	// Common vendor detection patterns
 	vendors := map[string]string{
@@ -155,29 +255,51 @@ func (c *Client) parseVendorAndVersion(device *models.Device) {
 		"ubiquiti":  "Ubiquiti",
 		"fortinet":  "Fortinet",
 		"palo alto": "Palo Alto",
+		"microsoft": "Microsoft",
+		"windows":   "Microsoft",
+		"linux":     "Linux",
+		"ubuntu":    "Ubuntu",
+		"centos":    "CentOS",
+		"redhat":    "Red Hat",
 	}
 
 	for pattern, vendor := range vendors {
 		if strings.Contains(desc, pattern) {
 			device.Vendor = vendor
+			c.logger.Debugf("Vendor detected: %s (pattern: %s)", vendor, pattern)
 			break
 		}
+	}
+
+	if device.Vendor == "" {
+		device.Vendor = "Unknown"
+		c.logger.Debugf("No vendor detected, set to Unknown")
 	}
 
 	// Try to extract version information
 	lines := strings.Split(device.Description, "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if strings.Contains(strings.ToLower(line), "version") {
+		lineLower := strings.ToLower(line)
+		if strings.Contains(lineLower, "version") {
 			device.Version = line
+			c.logger.Debugf("Version found: %s", line)
 			break
 		}
+	}
+
+	if device.Version == "" {
+		c.logger.Debugf("No version information found")
 	}
 }
 
 // IsDeviceReachable checks if a device responds to SNMP
 func (c *Client) IsDeviceReachable(ip string, communities []string) bool {
+	c.logger.Debugf("Checking if device %s is reachable with communities: %v", ip, communities)
+
 	for _, community := range communities {
+		c.logger.Debugf("Testing reachability with community: %s", community)
+
 		client := &gosnmp.GoSNMP{
 			Target:    ip,
 			Port:      161,
@@ -189,14 +311,27 @@ func (c *Client) IsDeviceReachable(ip string, communities []string) bool {
 
 		err := client.Connect()
 		if err != nil {
+			c.logger.Debugf("Connection failed for %s with %s: %v", ip, community, err)
 			continue
 		}
-		defer client.Conn.Close()
 
-		_, err = client.Get([]string{OIDSysDescr})
-		if err == nil {
-			return true
+		c.logger.Debugf("Connection successful, testing SNMP query...")
+		result, err := client.Get([]string{OIDSysDescr})
+		client.Conn.Close()
+
+		if err == nil && len(result.Variables) > 0 {
+			variable := result.Variables[0]
+			if variable.Type != gosnmp.NoSuchObject && variable.Type != gosnmp.NoSuchInstance {
+				c.logger.Debugf("Device %s is reachable with community %s", ip, community)
+				return true
+			}
+		}
+
+		if err != nil {
+			c.logger.Debugf("SNMP query failed for %s: %v", ip, err)
 		}
 	}
+
+	c.logger.Debugf("Device %s is not reachable with any community", ip)
 	return false
 }
