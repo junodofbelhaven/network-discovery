@@ -236,7 +236,6 @@ SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 - SNMP servisinin aktif olduğunu kontrol edin
 - Community string'lerin doğru olduğunu doğrulayın
 - Firewall kurallarını kontrol edin (UDP 161 portu)
-- Network connectivity'yi test edin
 - SNMP servisinin güvenlik kısmından hangi bağlantılardan bağlantı kabul ettiğini kontrol edin
 
 **Yavaş tarama:**
@@ -285,6 +284,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+
 
 
 
