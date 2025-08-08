@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -85,7 +86,7 @@ func (s *Scanner) ScanNetwork(networkRange string) ([]*models.Device, error) {
 	for device := range resultChan {
 		if device != nil {
 			devices = append(devices, device)
-			s.logger.Infof("Found ARP device: %s (%s)", device.IP, device.MACAddress)
+			s.logger.Infof("Found ARP device: %s (%s) - %s", device.IP, device.MACAddress, device.Vendor)
 		}
 	}
 
@@ -99,7 +100,7 @@ func (s *Scanner) worker(ipChan <-chan string, resultChan chan<- *models.Device,
 	defer wg.Done()
 
 	for ip := range ipChan {
-		s.logger.Debugf("ARP scanning IP: %s", ip)
+		s.logger.Debugf("Scanning IP: %s", ip)
 
 		device := s.scanSingleIP(ip)
 		if device != nil {
@@ -158,7 +159,7 @@ func (s *Scanner) pingIP(ip string) bool {
 
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("ping", "-n", "1", "-w", "500", ip) // Reduced from 1000ms to 500ms
+		cmd = exec.Command("ping", "-n", "1", "-w", "500", ip)
 	default: // Linux, macOS
 		cmd = exec.Command("ping", "-c", "1", "-W", "1", ip)
 	}
@@ -239,11 +240,28 @@ func (s *Scanner) getVendorFromMAC(macAddress string) string {
 	oui := strings.ReplaceAll(macAddress[:8], ":", "")
 	oui = strings.ToUpper(oui)
 
-	s.logger.Debugf("Extracting vendor for MAC: %s, OUI: %s", macAddress, oui)
+	s.logger.Debugf("Processing MAC: %s -> OUI: %s", macAddress, oui)
 
-	// Common OUI mappings (expanded and corrected)
+	// Check if it's a locally administered address (2nd bit of first octet is 1)
+	if len(oui) >= 2 {
+		firstOctet := oui[:2]
+		if val, err := strconv.ParseInt(firstOctet, 16, 64); err == nil {
+			if val&0x02 != 0 { // Locally administered bit is set
+				s.logger.Debugf("MAC %s is locally administered (virtual/random)", macAddress)
+				return "Virtual/Random"
+			}
+		}
+	}
+
+	// Extensive OUI mappings database - real vendor assignments
 	ouiVendors := map[string]string{
-		// VMware
+		// Specific devices from your scan
+		"000121": "Cabletron Systems",
+		"C403A8": "Shenzhen Coship Electronics",
+		"5C3A45": "Liteon Technology Corporation",
+		"600308": "Apple",
+
+		// VMware (for testing)
 		"005056": "VMware",
 		"000C29": "VMware",
 		"001C14": "VMware",
@@ -257,34 +275,13 @@ func (s *Scanner) getVendorFromMAC(macAddress string) string {
 		"525400": "QEMU/KVM",
 		"021C42": "QEMU/KVM",
 
-		// Xen
-		"00163E": "Xen",
-
-		// Intel
-		"001B21": "Intel",
-		"7085C2": "Intel",
-		"8086F2": "Intel",
-		"A45E60": "Intel",
-		"009027": "Intel",
-		"0015F2": "Intel",
-
-		// Dell
-		"001372": "Dell",
-		"001422": "Dell",
-		"0018F3": "Dell",
-		"002564": "Dell",
-		"00B0D0": "Dell",
-		"001E4F": "Dell",
-		"F8B156": "Dell",
-		"3417EB": "Dell",
-
 		// Raspberry Pi
-		"B827EB": "Raspberry Pi",
-		"DCA632": "Raspberry Pi",
-		"E45F01": "Raspberry Pi",
-		"DC2632": "Raspberry Pi",
-		"28CD4C": "Raspberry Pi",
-		"2C3AE8": "Raspberry Pi",
+		"B827EB": "Raspberry Pi Foundation",
+		"DCA632": "Raspberry Pi Trading",
+		"E45F01": "Raspberry Pi Foundation",
+		"DC2632": "Raspberry Pi Trading",
+		"28CD4C": "Raspberry Pi Trading",
+		"2C3AE8": "Raspberry Pi Trading",
 
 		// Apple
 		"28CDC1": "Apple",
@@ -305,108 +302,80 @@ func (s *Scanner) getVendorFromMAC(macAddress string) string {
 		"003EE1": "Apple",
 		"040CCE": "Apple",
 		"8C5877": "Apple",
-		"5855CA": "Apple",
-		"BC92B6": "Apple",
-		"48A195": "Apple",
+
+		// Intel
+		"001B21": "Intel Corporation",
+		"7085C2": "Intel Corporation",
+		"8086F2": "Intel Corporation",
+		"A45E60": "Intel Corporation",
+		"009027": "Intel Corporation",
+		"0015F2": "Intel Corporation",
 
 		// Cisco
-		"0050F2": "Cisco",
-		"000142": "Cisco",
-		"0060B0": "Cisco",
-		"000A41": "Cisco",
-		"001BD4": "Cisco",
-		"001C58": "Cisco",
-		"002155": "Cisco",
-		"5087B5": "Cisco",
+		"0050F2": "Cisco Systems",
+		"000142": "Cisco Systems",
+		"0060B0": "Cisco Systems",
+		"000A41": "Cisco Systems",
+		"001BD4": "Cisco Systems",
+		"001C58": "Cisco Systems",
+		"002155": "Cisco Systems",
+
+		// Dell
+		"001372": "Dell Inc.",
+		"001422": "Dell Inc.",
+		"0018F3": "Dell Inc.",
+		"002564": "Dell Inc.",
+		"00B0D0": "Dell Inc.",
+		"001E4F": "Dell Inc.",
 
 		// HP
-		"001F29": "HP",
-		"002608": "HP",
-		"002655": "HP",
-		"70106F": "HP",
-		"009C02": "HP",
-		"001E0B": "HP",
-		"001CC4": "HP",
+		"001F29": "Hewlett Packard",
+		"002608": "Hewlett Packard",
+		"002655": "Hewlett Packard",
+		"70106F": "Hewlett Packard",
+
+		// Samsung
+		"001D25": "Samsung Electronics",
+		"002454": "Samsung Electronics",
+		"0025E5": "Samsung Electronics",
+		"34E6AD": "Samsung Electronics",
+
+		// Huawei
+		"001E10": "Huawei Technologies",
+		"002EC7": "Huawei Technologies",
+		"0025CE": "Huawei Technologies",
+		"34E318": "Huawei Technologies",
+
+		// TP-Link
+		"141877": "TP-Link Technologies",
+		"50C7BF": "TP-Link Technologies",
+		"C04A00": "TP-Link Technologies",
+		"E894F6": "TP-Link Technologies",
 
 		// Netgear
 		"001E2A": "Netgear",
 		"0026F2": "Netgear",
 		"002713": "Netgear",
 		"84D47E": "Netgear",
-		"A021B7": "Netgear",
 
 		// D-Link
-		"001195": "D-Link",
-		"001346": "D-Link",
-		"0015E9": "D-Link",
-		"001CF0": "D-Link",
-		"14D64D": "D-Link",
+		"001195": "D-Link Corporation",
+		"001346": "D-Link Corporation",
+		"0015E9": "D-Link Corporation",
+		"001CF0": "D-Link Corporation",
 
-		// TP-Link
-		"141877": "TP-Link",
-		"50C7BF": "TP-Link",
-		"C04A00": "TP-Link",
-		"E894F6": "TP-Link",
-		"F4F26D": "TP-Link",
-		"FC7516": "TP-Link",
-
-		// MikroTik
-		"E748B7": "MikroTik",
-		"64D154": "MikroTik",
-		"48A9C2": "MikroTik",
-		"CC2DE0": "MikroTik",
-		"6C3B6B": "MikroTik",
-
-		// Ubiquiti
-		"043E37": "Ubiquiti",
-		"68D79A": "Ubiquiti",
-		"80EA96": "Ubiquiti",
-		"F09FC2": "Ubiquiti",
-		"78A050": "Ubiquiti",
-		"F4E2C5": "Ubiquiti",
-
-		// Samsung
-		"001D25":  "Samsung",
-		"002454":  "Samsung",
-		"0025E5":  "Samsung",
-		"34E6AD":  "Samsung",
-		"8C77120": "Samsung",
-		"C85195":  "Samsung",
-
-		// Huawei
-		"001E10": "Huawei",
-		"002EC7": "Huawei",
-		"0025CE": "Huawei",
-		"34E318": "Huawei",
-		"4C549D": "Huawei",
-		"6C92BF": "Huawei",
-		"ACE215": "Huawei",
-
-		// Realtek
-		"52540A": "Realtek",
-		"001DD8": "Realtek",
-		"0019E0": "Realtek",
-		"E0469A": "Realtek",
+		// Xiaomi
+		"8CFDB0": "Xiaomi Communications",
+		"64B473": "Xiaomi Communications",
+		"F8A45F": "Xiaomi Communications",
 
 		// Microsoft
-		"B499BA": "Microsoft",
+		"7CD1C3": "Microsoft Corporation",
 
-		// Asus
-		"001E8C":  "Asus",
-		"0026184": "Asus",
-		"2C56DC":  "Asus",
-		"04925A":  "Asus",
-		"C860008": "Asus",
-
-		// Qualcomm
-		"001A8A": "Qualcomm",
-		"002719": "Qualcomm",
-		"8CFDB0": "Qualcomm",
-
-		// Broadcom
-		"001018": "Broadcom",
-		"002067": "Broadcom",
-		"ACF1DF": "Broadcom",
+		// Other common manufacturers
+		"001B63": "Hon Hai Precision Ind.",
+		"E0469A": "Realtek Semiconductor",
+		"001DD8": "Realtek Semiconductor",
 	}
 
 	// Check exact OUI match (6 hex digits)
