@@ -10,7 +10,7 @@
     <div class="container">
       <div class="header">
         <h1>🌐 Network Discovery Tool</h1>
-        <p>Discover and analyze SNMP-enabled devices in your network</p>
+        <p>Discover and analyze network devices using SNMP and ARP</p>
       </div>
 
       <div class="card">
@@ -26,6 +26,15 @@
           </div>
 
           <div class="form-group">
+            <label for="scanType">Scan Type</label>
+            <select id="scanType">
+              <option value="full">Full Scan (SNMP + ARP) - Recommended</option>
+              <option value="snmp">SNMP Only</option>
+              <option value="arp">ARP Only</option>
+            </select>
+          </div>
+
+          <div class="form-group communities-group">
             <label for="communities">SNMP Communities (comma-separated)</label>
             <input
               type="text"
@@ -33,6 +42,10 @@
               placeholder="public,private,community"
               value="public"
             />
+            <small class="form-help"
+              >Used for SNMP discovery. Try common communities like 'public',
+              'private'</small
+            >
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
@@ -49,6 +62,34 @@
 
           <button type="submit" class="btn">Start Network Scan</button>
         </form>
+
+        <div class="scan-info">
+          <h3>Scan Types Explained:</h3>
+          <div class="scan-methods">
+            <div class="scan-method">
+              <strong>🔍 Full Scan (SNMP + ARP):</strong>
+              <p>
+                Combines both SNMP and ARP scanning for the most comprehensive
+                device discovery. Provides detailed device information plus
+                broad network coverage.
+              </p>
+            </div>
+            <div class="scan-method">
+              <strong>📡 SNMP Only:</strong>
+              <p>
+                Discovers only SNMP-enabled devices. Provides detailed
+                information like hostname, description, vendor, and uptime.
+              </p>
+            </div>
+            <div class="scan-method">
+              <strong>🌐 ARP Only:</strong>
+              <p>
+                Discovers all IP-enabled devices on the network segment.
+                Provides IP and MAC addresses with vendor identification.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="loading" id="loading">

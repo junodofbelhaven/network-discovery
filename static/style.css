@@ -55,6 +55,13 @@ label {
   color: #555;
 }
 
+.form-help {
+  font-size: 0.85em;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+}
+
 input,
 select,
 button {
@@ -94,6 +101,44 @@ select:focus {
   transform: none;
 }
 
+/* Scan info section */
+.scan-info {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #515877;
+}
+
+.scan-info h3 {
+  color: #515877;
+  margin-bottom: 15px;
+}
+
+.scan-methods {
+  display: grid;
+  gap: 12px;
+}
+
+.scan-method {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+}
+
+.scan-method strong {
+  color: #515877;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.scan-method p {
+  font-size: 0.9em;
+  color: #666;
+  margin: 0;
+}
+
 .loading {
   display: none;
   text-align: center;
@@ -125,8 +170,8 @@ select:focus {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
   margin-bottom: 30px;
 }
 
@@ -142,6 +187,36 @@ select:focus {
   font-size: 2em;
   font-weight: bold;
   margin-bottom: 5px;
+}
+
+/* Scan method badges */
+.scan-method-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-right: 8px;
+}
+
+.scan-method-badge.snmp {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.scan-method-badge.arp {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.scan-method-badge.combined {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.scan-method-badge.full {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .devices-grid {
@@ -164,7 +239,7 @@ select:focus {
 
 .device-header {
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
 }
@@ -173,6 +248,11 @@ select:focus {
   font-size: 1.2em;
   font-weight: bold;
   color: #515877;
+}
+
+.device-badges {
+  display: flex;
+  align-items: center;
 }
 
 .device-status {
@@ -195,7 +275,7 @@ select:focus {
 .device-info {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .info-item {
@@ -207,12 +287,26 @@ select:focus {
   font-size: 0.8em;
   color: #666;
   font-weight: 600;
+  margin-bottom: 2px;
 }
 
 .info-value {
   font-size: 0.9em;
   color: #333;
-  margin-top: 2px;
+}
+
+.info-value.mac-address {
+  font-family: "Courier New", monospace;
+  background: #f1f3f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.info-value.description {
+  font-size: 0.85em;
+  max-width: 300px;
+  word-wrap: break-word;
 }
 
 .error {
@@ -224,6 +318,7 @@ select:focus {
   border: 1px solid #f5c6cb;
 }
 
+/* Responsive design */
 @media (max-width: 768px) {
   .container {
     padding: 10px;
@@ -238,6 +333,40 @@ select:focus {
   }
 
   .stats {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .device-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .device-badges {
+    align-self: flex-end;
+  }
+
+  .device-info {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .scan-methods {
+    gap: 8px;
+  }
+
+  .scan-method {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-number {
+    font-size: 1.5em;
   }
 }

@@ -57,7 +57,6 @@ func main() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Server failed to start: %v", err)
 		}
-		fmt.Printf("log leve: %s", *logLevel)
 	}()
 
 	// Print startup information
@@ -91,15 +90,32 @@ func printStartupInfo(host, port string) {
    • URL: http://%s:%s
 
 🔗 API Endpoints:
-   • Health Check:    GET  /api/v1/health
-   • Version Info:    GET  /api/v1/version
-   • Network Scan:    POST /api/v1/network/scan
-   • Quick Scan:      GET  /api/v1/network/quick-scan?network=<CIDR>
-   • Validate Range:  GET  /api/v1/network/validate?network=<CIDR>
-   • Device Scan:     GET  /api/v1/device/<IP>
+   • Health Check:       GET  /api/v1/health
+   • Version Info:       GET  /api/v1/version
+   • Scan Methods:       GET  /api/v1/scan-methods
+   • Full Network Scan:  POST /api/v1/network/full-scan
+   • SNMP Scan:          POST /api/v1/network/scan/snmp
+   • ARP Scan:           POST /api/v1/network/scan/arp
+   • Legacy SNMP Scan:   POST /api/v1/network/scan
+   • Quick Scan:         GET  /api/v1/network/quick-scan?network=<CIDR>
+   • Validate Range:     GET  /api/v1/network/validate?network=<CIDR>
+   • Device Scan:        GET  /api/v1/device/<IP>
 
 📋 Example Usage:
-   curl -X POST http://%s:%s/api/v1/network/scan \
+   
+   🔍 Full Scan (SNMP + ARP):
+   curl -X POST http://%s:%s/api/v1/network/full-scan \
+     -H "Content-Type: application/json" \
+     -d '{
+       "network_range": "192.168.1.0/24",
+       "communities": ["public", "private"],
+       "timeout": 5,
+       "retries": 2,
+       "scan_type": "full"
+     }'
+
+   📡 SNMP Only Scan:
+   curl -X POST http://%s:%s/api/v1/network/scan/snmp \
      -H "Content-Type: application/json" \
      -d '{
        "network_range": "192.168.1.0/24",
@@ -108,21 +124,43 @@ func printStartupInfo(host, port string) {
        "retries": 2
      }'
 
+   🌐 ARP Only Scan:
+   curl -X POST http://%s:%s/api/v1/network/scan/arp \
+     -H "Content-Type: application/json" \
+     -d '{
+       "network_range": "192.168.1.0/24",
+       "timeout": 5,
+       "retries": 2
+     }'
+
+   ⚡ Quick Scan:
    curl "http://%s:%s/api/v1/network/quick-scan?network=192.168.1.0/24"
    
+   🖥️  Single Device:
    curl "http://%s:%s/api/v1/device/192.168.1.1?community=public"
 
 🛠️  Features:
-   • SNMP v2c protocol support
-   • Concurrent network scanning
-   • Device information discovery
-   • Vendor detection
-   • Response time measurement
-   • Network topology analysis
+   • 🔍 Full Network Discovery (SNMP + ARP)
+   • 📡 SNMP v2c protocol support
+   • 🌐 ARP-based device detection
+   • 🏃 Concurrent network scanning
+   • 📄 Device information discovery
+   • 🏭 Vendor detection (SNMP description + MAC OUI)
+   • 🕒 Response time measurement
+   • 🗺️  Network topology analysis
+   • 🔗 MAC address resolution
+   • 📊 Comprehensive statistics
+
+📝 Scan Types:
+   • Full Scan: Combines SNMP and ARP for maximum device discovery
+   • SNMP Scan: Detailed information from SNMP-enabled devices
+   • ARP Scan: Broad discovery of all IP-enabled devices
+
+🌐 Web Interface: http://%s:%s/index
 
 📝 Logs: Check console output for detailed scanning information
 🔧 Configuration: Use command line flags to customize settings
 
 Ready to discover your network! 🚀
-`, host, port, host, port, host, port, host, port, host, port)
+`, host, port, host, port, host, port, host, port, host, port, host, port, host, port, host, port)
 }

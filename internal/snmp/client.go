@@ -18,6 +18,13 @@ const (
 	OIDSysContact  = "1.3.6.1.2.1.1.4.0" // System contact
 	OIDSysLocation = "1.3.6.1.2.1.1.6.0" // System location
 	OIDSysUptime   = "1.3.6.1.2.1.1.3.0" // System uptime
+
+	// Interface OIDs for MAC address detection
+	OIDIfPhysAddress = "1.3.6.1.2.1.2.2.1.6" // Interface physical address (MAC)
+	OIDIfDescr       = "1.3.6.1.2.1.2.2.1.2" // Interface description
+	OIDIfType        = "1.3.6.1.2.1.2.2.1.3" // Interface type
+	OIDIfAdminStatus = "1.3.6.1.2.1.2.2.1.7" // Interface admin status
+	OIDIfOperStatus  = "1.3.6.1.2.1.2.2.1.8" // Interface operational status
 )
 
 type Client struct {
@@ -64,10 +71,11 @@ func (c *Client) QueryDevice(ip string, communities []string) (*models.Device, e
 			device.IsReachable = true
 			device.Community = community
 			device.ResponseTime = time.Since(start).Milliseconds()
+			device.ScanMethod = "SNMP"
 
 			c.logger.Infof("Successfully queried device %s with community '%s'", ip, community)
-			c.logger.Debugf("Device details: hostname='%s', description='%s', vendor='%s'",
-				device.Hostname, device.Description, device.Vendor)
+			c.logger.Debugf("Device details: hostname='%s', description='%s', vendor='%s', mac='%s'",
+				device.Hostname, device.Description, device.Vendor, device.MACAddress)
 
 			return device, nil
 		} else {
@@ -105,7 +113,7 @@ func (c *Client) queryWithCommunity(ip, community string, device *models.Device)
 
 	c.logger.Debugf("SNMP connection established to %s", ip)
 
-	// Query OIDs one by one instead of bulk query
+	// Query basic system OIDs
 	oidQueries := map[string]string{
 		OIDSysDescr:    "System Description",
 		OIDSysName:     "System Name",
@@ -165,6 +173,9 @@ func (c *Client) queryWithCommunity(ip, community string, device *models.Device)
 		}
 	}
 
+	// Try to get MAC address from interface table
+	c.getMACAddress(client, device)
+
 	// Check if we got at least some data
 	if device.Description == "" && device.Hostname == "" && device.Contact == "" && device.Location == "" && device.Uptime == "" {
 		return fmt.Errorf("no SNMP data retrieved from %s", ip)
@@ -172,6 +183,39 @@ func (c *Client) queryWithCommunity(ip, community string, device *models.Device)
 
 	c.logger.Debugf("Successfully retrieved SNMP data from %s", ip)
 	return nil
+}
+
+// getMACAddress attempts to retrieve MAC address from SNMP interface table
+func (c *Client) getMACAddress(client *gosnmp.GoSNMP, device *models.Device) {
+	c.logger.Debugf("Attempting to get MAC address for device %s", device.IP)
+
+	// Walk the interface physical address table
+	err := client.Walk(OIDIfPhysAddress, func(pdu gosnmp.SnmpPDU) error {
+		if pdu.Type == gosnmp.OctetString && pdu.Value != nil {
+			if macBytes, ok := pdu.Value.([]byte); ok && len(macBytes) == 6 {
+				// Convert bytes to MAC address string
+				macAddr := fmt.Sprintf("%02X:%02X:%02X:%02X:%02X:%02X",
+					macBytes[0], macBytes[1], macBytes[2],
+					macBytes[3], macBytes[4], macBytes[5])
+
+				// Skip empty MAC addresses (00:00:00:00:00:00)
+				if macAddr != "00:00:00:00:00:00" {
+					device.MACAddress = macAddr
+					c.logger.Debugf("Found MAC address: %s", macAddr)
+					return fmt.Errorf("stop_walk") // Stop walking after finding first valid MAC
+				}
+			}
+		}
+		return nil
+	})
+
+	if err != nil && err.Error() != "stop_walk" {
+		c.logger.Debugf("Failed to walk interface table for MAC address: %v", err)
+	}
+
+	if device.MACAddress == "" {
+		c.logger.Debugf("No MAC address found via SNMP for device %s", device.IP)
+	}
 }
 
 func (c *Client) parseString(variable gosnmp.SnmpPDU) string {
