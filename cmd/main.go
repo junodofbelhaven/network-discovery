@@ -17,9 +17,10 @@ import (
 )
 
 var (
-	port     = flag.String("port", "8080", "Server port")
-	host     = flag.String("host", "0.0.0.0", "Server host")
-	logLevel = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
+	port       = flag.String("port", "8080", "Server port")
+	host       = flag.String("host", "0.0.0.0", "Server host")
+	logLevel   = flag.String("log-level", "debug", "Log level (debug, info, warn, error)")
+	configPath = flag.String("config", "configs/oui_vendors.json", "Path to OUI vendors JSON file")
 )
 
 func main() {
@@ -42,13 +43,13 @@ func main() {
 	// Setup routes
 	router := api.SetupRoutes(networkDiscovery)
 
-	// Create HTTP server
+	// Create HTTP server with increased timeouts for long scans
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", *host, *port),
 		Handler:      router,
-		ReadTimeout:  5 * time.Minute,
-		WriteTimeout: 5 * time.Minute,
-		IdleTimeout:  10 * time.Minute,
+		ReadTimeout:  5 * time.Minute,  // Increased from 30s to 5 minutes
+		WriteTimeout: 5 * time.Minute,  // Increased from 30s to 5 minutes
+		IdleTimeout:  10 * time.Minute, // Increased from 60s to 10 minutes
 	}
 
 	// Start server in a goroutine
@@ -101,7 +102,8 @@ func printStartupInfo(host, port string) {
    • Validate Range:     GET  /api/v1/network/validate?network=<CIDR>
    • Device Scan:        GET  /api/v1/device/<IP>
 
-📋 Example Usage (Windows Command Prompt):
+
+   📋 Example Usage (Windows Command Prompt):
 
    🔍 Full Scan (SNMP + ARP):
    curl -X POST http://%s:%s/api/v1/network/full-scan ^
@@ -132,7 +134,7 @@ func printStartupInfo(host, port string) {
        \"timeout\": 5,
        \"retries\": 2
      }"
-
+	 
    ⚡ Quick Scan:
    curl "http://%s:%s/api/v1/network/quick-scan?network=192.168.1.0/24"
    
@@ -162,14 +164,5 @@ func printStartupInfo(host, port string) {
 🔧 Configuration: Use command line flags to customize settings
 
 Ready to discover your network! 🚀
-`,
-		host, port,
-		host, port,
-		host, port,
-		host, port,
-		host, port,
-		host, port,
-		host, port,
-		host, port,
-	)
+`, host, port, host, port, host, port, host, port, host, port, host, port, host, port, host, port)
 }

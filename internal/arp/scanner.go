@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,8 +16,9 @@ import (
 )
 
 type Scanner struct {
-	logger     *logrus.Logger
-	maxWorkers int
+	logger        *logrus.Logger
+	maxWorkers    int
+	vendorManager *VendorManager
 }
 
 func NewScanner(maxWorkers int) *Scanner {
@@ -26,15 +26,25 @@ func NewScanner(maxWorkers int) *Scanner {
 	logger.SetLevel(logrus.InfoLevel)
 
 	return &Scanner{
-		logger:     logger,
-		maxWorkers: maxWorkers,
+		logger:        logger,
+		maxWorkers:    maxWorkers,
+		vendorManager: NewVendorManager("", logger), // Default config path
 	}
 }
 
 func NewScannerWithLogger(maxWorkers int, logger *logrus.Logger) *Scanner {
 	return &Scanner{
-		logger:     logger,
-		maxWorkers: maxWorkers,
+		logger:        logger,
+		maxWorkers:    maxWorkers,
+		vendorManager: NewVendorManager("", logger), // Default config path
+	}
+}
+
+func NewScannerWithConfig(maxWorkers int, logger *logrus.Logger, configPath string) *Scanner {
+	return &Scanner{
+		logger:        logger,
+		maxWorkers:    maxWorkers,
+		vendorManager: NewVendorManager(configPath, logger),
 	}
 }
 
@@ -231,161 +241,17 @@ func (s *Scanner) parseARPOutput(output, targetIP string) (string, error) {
 
 // getVendorFromMAC attempts to identify vendor from MAC address OUI
 func (s *Scanner) getVendorFromMAC(macAddress string) string {
-	if len(macAddress) < 8 {
-		s.logger.Debugf("MAC address too short for vendor detection: %s", macAddress)
-		return "Unknown"
-	}
+	return s.vendorManager.GetVendor(macAddress)
+}
 
-	// Extract OUI (first 3 octets) and normalize
-	oui := strings.ReplaceAll(macAddress[:8], ":", "")
-	oui = strings.ToUpper(oui)
+// GetVendorDatabaseInfo returns information about the vendor database
+func (s *Scanner) GetVendorDatabaseInfo() map[string]interface{} {
+	return s.vendorManager.GetDatabaseInfo()
+}
 
-	s.logger.Debugf("Processing MAC: %s -> OUI: %s", macAddress, oui)
-
-	// Check if it's a locally administered address (2nd bit of first octet is 1)
-	if len(oui) >= 2 {
-		firstOctet := oui[:2]
-		if val, err := strconv.ParseInt(firstOctet, 16, 64); err == nil {
-			if val&0x02 != 0 { // Locally administered bit is set
-				s.logger.Debugf("MAC %s is locally administered (virtual/random)", macAddress)
-				return "Virtual/Random"
-			}
-		}
-	}
-
-	// Extensive OUI mappings database - real vendor assignments
-	ouiVendors := map[string]string{
-		// Specific devices from your scan
-		"000121": "Cabletron Systems",
-		"C403A8": "Shenzhen Coship Electronics",
-		"5C3A45": "Liteon Technology Corporation",
-		"600308": "Apple",
-
-		// VMware (for testing)
-		"005056": "VMware",
-		"000C29": "VMware",
-		"001C14": "VMware",
-		"005069": "VMware",
-
-		// VirtualBox
-		"080027": "Oracle VirtualBox",
-		"0A0027": "Oracle VirtualBox",
-
-		// QEMU/KVM
-		"525400": "QEMU/KVM",
-		"021C42": "QEMU/KVM",
-
-		// Raspberry Pi
-		"B827EB": "Raspberry Pi Foundation",
-		"DCA632": "Raspberry Pi Trading",
-		"E45F01": "Raspberry Pi Foundation",
-		"DC2632": "Raspberry Pi Trading",
-		"28CD4C": "Raspberry Pi Trading",
-		"2C3AE8": "Raspberry Pi Trading",
-
-		// Apple
-		"28CDC1": "Apple",
-		"40CBC0": "Apple",
-		"3C0754": "Apple",
-		"001FF3": "Apple",
-		"D481D7": "Apple",
-		"A4B1C1": "Apple",
-		"0023DF": "Apple",
-		"F01898": "Apple",
-		"ACDE48": "Apple",
-		"843835": "Apple",
-		"9801A7": "Apple",
-		"6C4008": "Apple",
-		"8863DF": "Apple",
-		"784F43": "Apple",
-		"0026BB": "Apple",
-		"003EE1": "Apple",
-		"040CCE": "Apple",
-		"8C5877": "Apple",
-
-		// Intel
-		"001B21": "Intel Corporation",
-		"7085C2": "Intel Corporation",
-		"8086F2": "Intel Corporation",
-		"A45E60": "Intel Corporation",
-		"009027": "Intel Corporation",
-		"0015F2": "Intel Corporation",
-
-		// Cisco
-		"0050F2": "Cisco Systems",
-		"000142": "Cisco Systems",
-		"0060B0": "Cisco Systems",
-		"000A41": "Cisco Systems",
-		"001BD4": "Cisco Systems",
-		"001C58": "Cisco Systems",
-		"002155": "Cisco Systems",
-
-		// Dell
-		"001372": "Dell Inc.",
-		"001422": "Dell Inc.",
-		"0018F3": "Dell Inc.",
-		"002564": "Dell Inc.",
-		"00B0D0": "Dell Inc.",
-		"001E4F": "Dell Inc.",
-
-		// HP
-		"001F29": "Hewlett Packard",
-		"002608": "Hewlett Packard",
-		"002655": "Hewlett Packard",
-		"70106F": "Hewlett Packard",
-
-		// Samsung
-		"001D25": "Samsung Electronics",
-		"002454": "Samsung Electronics",
-		"0025E5": "Samsung Electronics",
-		"34E6AD": "Samsung Electronics",
-
-		// Huawei
-		"001E10": "Huawei Technologies",
-		"002EC7": "Huawei Technologies",
-		"0025CE": "Huawei Technologies",
-		"34E318": "Huawei Technologies",
-
-		// TP-Link
-		"141877": "TP-Link Technologies",
-		"50C7BF": "TP-Link Technologies",
-		"C04A00": "TP-Link Technologies",
-		"E894F6": "TP-Link Technologies",
-
-		// Netgear
-		"001E2A": "Netgear",
-		"0026F2": "Netgear",
-		"002713": "Netgear",
-		"84D47E": "Netgear",
-
-		// D-Link
-		"001195": "D-Link Corporation",
-		"001346": "D-Link Corporation",
-		"0015E9": "D-Link Corporation",
-		"001CF0": "D-Link Corporation",
-
-		// Xiaomi
-		"8CFDB0": "Xiaomi Communications",
-		"64B473": "Xiaomi Communications",
-		"F8A45F": "Xiaomi Communications",
-
-		// Microsoft
-		"7CD1C3": "Microsoft Corporation",
-
-		// Other common manufacturers
-		"001B63": "Hon Hai Precision Ind.",
-		"E0469A": "Realtek Semiconductor",
-		"001DD8": "Realtek Semiconductor",
-	}
-
-	// Check exact OUI match (6 hex digits)
-	if vendor, exists := ouiVendors[oui]; exists {
-		s.logger.Debugf("Vendor found for OUI %s: %s", oui, vendor)
-		return vendor
-	}
-
-	s.logger.Debugf("No vendor found for OUI: %s", oui)
-	return "Unknown"
+// ReloadVendorDatabase reloads the vendor database from file
+func (s *Scanner) ReloadVendorDatabase() error {
+	return s.vendorManager.ReloadDatabase()
 }
 
 func (s *Scanner) parseNetworkRange(networkRange string) ([]string, error) {

@@ -37,6 +37,14 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 		v1.GET("/health", handlers.GetHealth)
 		v1.GET("/version", handlers.GetVersion)
 		v1.GET("/scan-methods", handlers.GetScanMethods)
+		v1.GET("/test-vendor", handlers.TestVendorDetection) // Debug endpoint
+
+		// Vendor database endpoints
+		vendor := v1.Group("/vendor-database")
+		{
+			vendor.GET("/", handlers.GetVendorDatabase)
+			vendor.POST("/reload", handlers.ReloadVendorDatabase)
+		}
 
 		// Network discovery endpoints
 		network := v1.Group("/network")
