@@ -46,9 +46,9 @@ func main() {
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", *host, *port),
 		Handler:      router,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  5 * time.Minute,
+		WriteTimeout: 5 * time.Minute,
+		IdleTimeout:  10 * time.Minute,
 	}
 
 	// Start server in a goroutine
@@ -101,37 +101,37 @@ func printStartupInfo(host, port string) {
    • Validate Range:     GET  /api/v1/network/validate?network=<CIDR>
    • Device Scan:        GET  /api/v1/device/<IP>
 
-📋 Example Usage:
-   
+📋 Example Usage (Windows Command Prompt):
+
    🔍 Full Scan (SNMP + ARP):
-   curl -X POST http://%s:%s/api/v1/network/full-scan \
-     -H "Content-Type: application/json" \
-     -d '{
-       "network_range": "192.168.1.0/24",
-       "communities": ["public", "private"],
-       "timeout": 5,
-       "retries": 2,
-       "scan_type": "full"
-     }'
+   curl -X POST http://%s:%s/api/v1/network/full-scan ^
+     -H "Content-Type: application/json" ^
+     -d "{
+       \"network_range\": \"192.168.1.0/24\",
+       \"communities\": [\"public\", \"private\"],
+       \"timeout\": 5,
+       \"retries\": 2,
+       \"scan_type\": \"full\"
+     }"
 
    📡 SNMP Only Scan:
-   curl -X POST http://%s:%s/api/v1/network/scan/snmp \
-     -H "Content-Type: application/json" \
-     -d '{
-       "network_range": "192.168.1.0/24",
-       "communities": ["public", "private"],
-       "timeout": 5,
-       "retries": 2
-     }'
+   curl -X POST http://%s:%s/api/v1/network/scan/snmp ^
+     -H "Content-Type: application/json" ^
+     -d "{
+       \"network_range\": \"192.168.1.0/24\",
+       \"communities\": [\"public\", \"private\"],
+       \"timeout\": 5,
+       \"retries\": 2
+     }"
 
    🌐 ARP Only Scan:
-   curl -X POST http://%s:%s/api/v1/network/scan/arp \
-     -H "Content-Type: application/json" \
-     -d '{
-       "network_range": "192.168.1.0/24",
-       "timeout": 5,
-       "retries": 2
-     }'
+   curl -X POST http://%s:%s/api/v1/network/scan/arp ^
+     -H "Content-Type: application/json" ^
+     -d "{
+       \"network_range\": \"192.168.1.0/24\",
+       \"timeout\": 5,
+       \"retries\": 2
+     }"
 
    ⚡ Quick Scan:
    curl "http://%s:%s/api/v1/network/quick-scan?network=192.168.1.0/24"
@@ -162,5 +162,14 @@ func printStartupInfo(host, port string) {
 🔧 Configuration: Use command line flags to customize settings
 
 Ready to discover your network! 🚀
-`, host, port, host, port, host, port, host, port, host, port, host, port, host, port, host, port)
+`,
+		host, port,
+		host, port,
+		host, port,
+		host, port,
+		host, port,
+		host, port,
+		host, port,
+		host, port,
+	)
 }

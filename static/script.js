@@ -22,6 +22,9 @@ document.getElementById("scanForm").addEventListener("submit", async (e) => {
   submitBtn.disabled = true;
   submitBtn.textContent = "Scanning...";
 
+  // Update loading message based on scan type and network size
+  updateLoadingMessage(networkRange, scanType);
+
   try {
     // Choose endpoint based on scan type
     let endpoint;
@@ -43,13 +46,20 @@ document.getElementById("scanForm").addEventListener("submit", async (e) => {
       requestBody.scan_type = "full";
     }
 
+    // Set longer timeout for frontend request (5 minutes)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +68,13 @@ document.getElementById("scanForm").addEventListener("submit", async (e) => {
     const data = await response.json();
     displayResults(data);
   } catch (error) {
-    showError(`Scan failed: ${error.message}`);
+    if (error.name === "AbortError") {
+      showError(
+        `Scan timed out. Try using a smaller network range or faster settings (lower timeout/retries).`
+      );
+    } else {
+      showError(`Scan failed: ${error.message}`);
+    }
   } finally {
     // Hide loading and re-enable form
     document.getElementById("loading").style.display = "none";
@@ -66,6 +82,41 @@ document.getElementById("scanForm").addEventListener("submit", async (e) => {
     submitBtn.textContent = "Start Network Scan";
   }
 });
+
+function updateLoadingMessage(networkRange, scanType) {
+  const loadingElement = document.getElementById("loading");
+  const messageElement = loadingElement.querySelector("p");
+
+  // Calculate approximate scan time
+  const cidrMatch = networkRange.match(/\/(\d+)$/);
+  let estimatedTime = "a few minutes";
+
+  if (cidrMatch) {
+    const maskBits = parseInt(cidrMatch[1]);
+    const hostCount = Math.pow(2, 32 - maskBits) - 2;
+
+    if (hostCount <= 10) {
+      estimatedTime = "10-30 seconds";
+    } else if (hostCount <= 50) {
+      estimatedTime = "30-60 seconds";
+    } else if (hostCount <= 254) {
+      estimatedTime = "1-3 minutes";
+    } else {
+      estimatedTime = "3-10 minutes";
+    }
+  }
+
+  const scanTypeText = {
+    arp: "ARP",
+    snmp: "SNMP",
+    full: "Full (SNMP + ARP)",
+  };
+
+  messageElement.innerHTML = `
+    Performing ${scanTypeText[scanType] || "Full"} scan...<br>
+    <small>Estimated time: ${estimatedTime}</small>
+  `;
+}
 
 function displayResults(data) {
   // Handle both new full scan format and legacy format

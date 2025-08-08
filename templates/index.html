@@ -51,12 +51,14 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
             <div class="form-group">
               <label for="timeout">Timeout (seconds)</label>
-              <input type="number" id="timeout" value="5" min="1" max="30" />
+              <input type="number" id="timeout" value="2" min="1" max="10" />
+              <small class="form-help">Lower values = faster scan</small>
             </div>
 
             <div class="form-group">
               <label for="retries">Retries</label>
-              <input type="number" id="retries" value="2" min="0" max="5" />
+              <input type="number" id="retries" value="0" min="0" max="3" />
+              <small class="form-help">0 = fastest, 1-2 = more reliable</small>
             </div>
           </div>
 

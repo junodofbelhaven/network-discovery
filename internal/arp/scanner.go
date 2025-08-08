@@ -111,12 +111,14 @@ func (s *Scanner) worker(ipChan <-chan string, resultChan chan<- *models.Device,
 // scanSingleIP performs ARP scan for a single IP
 func (s *Scanner) scanSingleIP(ip string) *models.Device {
 	start := time.Now()
+	s.logger.Debugf("Starting ARP scan for IP: %s", ip)
 
 	// First try to ping the IP to see if it's reachable
 	if !s.pingIP(ip) {
 		s.logger.Debugf("IP %s is not reachable via ping", ip)
 		return nil
 	}
+	s.logger.Debugf("IP %s responded to ping", ip)
 
 	// Get MAC address using ARP
 	macAddress, err := s.getARPEntry(ip)
@@ -130,17 +132,23 @@ func (s *Scanner) scanSingleIP(ip string) *models.Device {
 		return nil
 	}
 
+	s.logger.Debugf("Found MAC address for %s: %s", ip, macAddress)
+
+	// Get vendor information
+	vendor := s.getVendorFromMAC(macAddress)
+	s.logger.Debugf("Vendor detection for %s (MAC: %s): %s", ip, macAddress, vendor)
+
 	device := &models.Device{
 		IP:           ip,
 		MACAddress:   macAddress,
 		LastSeen:     time.Now(),
 		IsReachable:  true,
 		ResponseTime: time.Since(start).Milliseconds(),
-		Vendor:       s.getVendorFromMAC(macAddress),
+		Vendor:       vendor,
 		ScanMethod:   "ARP",
 	}
 
-	s.logger.Debugf("ARP scan successful for %s: MAC=%s", ip, macAddress)
+	s.logger.Debugf("ARP scan successful for %s: MAC=%s, Vendor=%s", ip, macAddress, vendor)
 	return device
 }
 
@@ -150,7 +158,7 @@ func (s *Scanner) pingIP(ip string) bool {
 
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("ping", "-n", "1", "-w", "1000", ip)
+		cmd = exec.Command("ping", "-n", "1", "-w", "500", ip) // Reduced from 1000ms to 500ms
 	default: // Linux, macOS
 		cmd = exec.Command("ping", "-c", "1", "-W", "1", ip)
 	}
@@ -181,6 +189,7 @@ func (s *Scanner) getARPEntry(ip string) (string, error) {
 // parseARPOutput parses ARP command output to extract MAC address
 func (s *Scanner) parseARPOutput(output, targetIP string) (string, error) {
 	lines := strings.Split(output, "\n")
+	s.logger.Debugf("Parsing ARP output for %s:\n%s", targetIP, output)
 
 	switch runtime.GOOS {
 	case "windows":
@@ -188,11 +197,14 @@ func (s *Scanner) parseARPOutput(output, targetIP string) (string, error) {
 		macRegex := regexp.MustCompile(`([0-9a-fA-F]{2}[-:]){5}[0-9a-fA-F]{2}`)
 		for _, line := range lines {
 			if strings.Contains(line, targetIP) {
+				s.logger.Debugf("Processing line: %s", line)
 				matches := macRegex.FindStringSubmatch(line)
 				if len(matches) > 0 {
-					// Convert Windows format (aa-bb-cc-dd-ee-ff) to standard format
+					// Convert to standard format (XX:XX:XX:XX:XX:XX)
 					mac := strings.ReplaceAll(matches[0], "-", ":")
-					return strings.ToUpper(mac), nil
+					mac = strings.ToUpper(mac)
+					s.logger.Debugf("Found MAC for %s: %s", targetIP, mac)
+					return mac, nil
 				}
 			}
 		}
@@ -201,78 +213,209 @@ func (s *Scanner) parseARPOutput(output, targetIP string) (string, error) {
 		macRegex := regexp.MustCompile(`([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}`)
 		for _, line := range lines {
 			if strings.Contains(line, targetIP) {
+				s.logger.Debugf("Processing line: %s", line)
 				matches := macRegex.FindStringSubmatch(line)
 				if len(matches) > 0 {
-					return strings.ToUpper(matches[0]), nil
+					mac := strings.ToUpper(matches[0])
+					s.logger.Debugf("Found MAC for %s: %s", targetIP, mac)
+					return mac, nil
 				}
 			}
 		}
 	}
 
+	s.logger.Debugf("No MAC address found in ARP output for %s", targetIP)
 	return "", fmt.Errorf("MAC address not found for IP %s", targetIP)
 }
 
 // getVendorFromMAC attempts to identify vendor from MAC address OUI
 func (s *Scanner) getVendorFromMAC(macAddress string) string {
 	if len(macAddress) < 8 {
+		s.logger.Debugf("MAC address too short for vendor detection: %s", macAddress)
 		return "Unknown"
 	}
 
-	// Extract OUI (first 3 octets)
+	// Extract OUI (first 3 octets) and normalize
 	oui := strings.ReplaceAll(macAddress[:8], ":", "")
 	oui = strings.ToUpper(oui)
 
-	// Common OUI mappings (this could be expanded with a full OUI database)
+	s.logger.Debugf("Extracting vendor for MAC: %s, OUI: %s", macAddress, oui)
+
+	// Common OUI mappings (expanded and corrected)
 	ouiVendors := map[string]string{
-		"00:50:56": "VMware",
-		"00:0C:29": "VMware",
-		"00:05:69": "VMware",
-		"08:00:27": "Oracle VirtualBox",
-		"52:54:00": "QEMU/KVM",
-		"00:16:3E": "Xen",
-		"00:1B:21": "Intel",
-		"00:13:72": "Dell",
-		"00:14:22": "Dell",
-		"B8:27:EB": "Raspberry Pi",
-		"DC:A6:32": "Raspberry Pi",
-		"E4:5F:01": "Raspberry Pi",
-		"28:CD:C1": "Apple",
-		"40:CB:C0": "Apple",
-		"3C:07:54": "Apple",
-		"00:1F:F3": "Apple",
-		"D4:81:D7": "Apple",
-		"A4:B1:C1": "Apple",
-		"00:23:DF": "Apple",
-		"F0:18:98": "Apple",
-		"AC:DE:48": "Apple",
-		"84:38:35": "Apple",
-		"98:01:A7": "Apple",
-		"6C:40:08": "Apple",
-		"88:63:DF": "Apple",
-		"78:4F:43": "Apple",
-		"00:26:BB": "Apple",
-		"00:3E:E1": "Apple",
-		"04:0C:CE": "Apple",
-		"8C:58:77": "Apple",
-		"00:50:C2": "IEEE Registration Authority",
-		"00:00:01": "Xerox",
-		"AA:00:04": "DEC",
-		"02:07:01": "Racal-Interlan",
+		// VMware
+		"005056": "VMware",
+		"000C29": "VMware",
+		"001C14": "VMware",
+		"005069": "VMware",
+
+		// VirtualBox
+		"080027": "Oracle VirtualBox",
+		"0A0027": "Oracle VirtualBox",
+
+		// QEMU/KVM
+		"525400": "QEMU/KVM",
+		"021C42": "QEMU/KVM",
+
+		// Xen
+		"00163E": "Xen",
+
+		// Intel
+		"001B21": "Intel",
+		"7085C2": "Intel",
+		"8086F2": "Intel",
+		"A45E60": "Intel",
+		"009027": "Intel",
+		"0015F2": "Intel",
+
+		// Dell
+		"001372": "Dell",
+		"001422": "Dell",
+		"0018F3": "Dell",
+		"002564": "Dell",
+		"00B0D0": "Dell",
+		"001E4F": "Dell",
+		"F8B156": "Dell",
+		"3417EB": "Dell",
+
+		// Raspberry Pi
+		"B827EB": "Raspberry Pi",
+		"DCA632": "Raspberry Pi",
+		"E45F01": "Raspberry Pi",
+		"DC2632": "Raspberry Pi",
+		"28CD4C": "Raspberry Pi",
+		"2C3AE8": "Raspberry Pi",
+
+		// Apple
+		"28CDC1": "Apple",
+		"40CBC0": "Apple",
+		"3C0754": "Apple",
+		"001FF3": "Apple",
+		"D481D7": "Apple",
+		"A4B1C1": "Apple",
+		"0023DF": "Apple",
+		"F01898": "Apple",
+		"ACDE48": "Apple",
+		"843835": "Apple",
+		"9801A7": "Apple",
+		"6C4008": "Apple",
+		"8863DF": "Apple",
+		"784F43": "Apple",
+		"0026BB": "Apple",
+		"003EE1": "Apple",
+		"040CCE": "Apple",
+		"8C5877": "Apple",
+		"5855CA": "Apple",
+		"BC92B6": "Apple",
+		"48A195": "Apple",
+
+		// Cisco
+		"0050F2": "Cisco",
+		"000142": "Cisco",
+		"0060B0": "Cisco",
+		"000A41": "Cisco",
+		"001BD4": "Cisco",
+		"001C58": "Cisco",
+		"002155": "Cisco",
+		"5087B5": "Cisco",
+
+		// HP
+		"001F29": "HP",
+		"002608": "HP",
+		"002655": "HP",
+		"70106F": "HP",
+		"009C02": "HP",
+		"001E0B": "HP",
+		"001CC4": "HP",
+
+		// Netgear
+		"001E2A": "Netgear",
+		"0026F2": "Netgear",
+		"002713": "Netgear",
+		"84D47E": "Netgear",
+		"A021B7": "Netgear",
+
+		// D-Link
+		"001195": "D-Link",
+		"001346": "D-Link",
+		"0015E9": "D-Link",
+		"001CF0": "D-Link",
+		"14D64D": "D-Link",
+
+		// TP-Link
+		"141877": "TP-Link",
+		"50C7BF": "TP-Link",
+		"C04A00": "TP-Link",
+		"E894F6": "TP-Link",
+		"F4F26D": "TP-Link",
+		"FC7516": "TP-Link",
+
+		// MikroTik
+		"E748B7": "MikroTik",
+		"64D154": "MikroTik",
+		"48A9C2": "MikroTik",
+		"CC2DE0": "MikroTik",
+		"6C3B6B": "MikroTik",
+
+		// Ubiquiti
+		"043E37": "Ubiquiti",
+		"68D79A": "Ubiquiti",
+		"80EA96": "Ubiquiti",
+		"F09FC2": "Ubiquiti",
+		"78A050": "Ubiquiti",
+		"F4E2C5": "Ubiquiti",
+
+		// Samsung
+		"001D25":  "Samsung",
+		"002454":  "Samsung",
+		"0025E5":  "Samsung",
+		"34E6AD":  "Samsung",
+		"8C77120": "Samsung",
+		"C85195":  "Samsung",
+
+		// Huawei
+		"001E10": "Huawei",
+		"002EC7": "Huawei",
+		"0025CE": "Huawei",
+		"34E318": "Huawei",
+		"4C549D": "Huawei",
+		"6C92BF": "Huawei",
+		"ACE215": "Huawei",
+
+		// Realtek
+		"52540A": "Realtek",
+		"001DD8": "Realtek",
+		"0019E0": "Realtek",
+		"E0469A": "Realtek",
+
+		// Microsoft
+		"B499BA": "Microsoft",
+
+		// Asus
+		"001E8C":  "Asus",
+		"0026184": "Asus",
+		"2C56DC":  "Asus",
+		"04925A":  "Asus",
+		"C860008": "Asus",
+
+		// Qualcomm
+		"001A8A": "Qualcomm",
+		"002719": "Qualcomm",
+		"8CFDB0": "Qualcomm",
+
+		// Broadcom
+		"001018": "Broadcom",
+		"002067": "Broadcom",
+		"ACF1DF": "Broadcom",
 	}
 
-	// Check exact match first
-	if vendor, exists := ouiVendors[macAddress[:8]]; exists {
+	// Check exact OUI match (6 hex digits)
+	if vendor, exists := ouiVendors[oui]; exists {
+		s.logger.Debugf("Vendor found for OUI %s: %s", oui, vendor)
 		return vendor
 	}
 
-	// Check first 6 characters (3 octets without colons)
-	if len(oui) >= 6 {
-		ouiKey := oui[:2] + ":" + oui[2:4] + ":" + oui[4:6]
-		if vendor, exists := ouiVendors[ouiKey]; exists {
-			return vendor
-		}
-	}
-
+	s.logger.Debugf("No vendor found for OUI: %s", oui)
 	return "Unknown"
 }
 
