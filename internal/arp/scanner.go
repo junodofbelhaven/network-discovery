@@ -220,7 +220,6 @@ func (s *Scanner) parseARPOutput(output, targetIP string) (string, error) {
 			}
 		}
 	default:
-		// Linux/macOS format: "192.168.1.1              ether   aa:bb:cc:dd:ee:ff   C                     eth0"
 		macRegex := regexp.MustCompile(`([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}`)
 		for _, line := range lines {
 			if strings.Contains(line, targetIP) {

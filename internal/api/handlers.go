@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"network-discovery/internal/discovery"
@@ -345,58 +344,6 @@ func (h *Handlers) GetVersion(c *gin.Context) {
 			"mac_resolution":   "Hardware address identification",
 			"vendor_detection": "JSON-based vendor database",
 		},
-	})
-}
-
-// TestVendorDetection - test endpoint for debugging vendor detection
-func (h *Handlers) TestVendorDetection(c *gin.Context) {
-	macAddr := c.Query("mac")
-	if macAddr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "MAC address is required. Example: ?mac=AA:BB:CC:DD:EE:FF",
-		})
-		return
-	}
-
-	// Test vendor detection logic
-	if len(macAddr) < 8 {
-		c.JSON(http.StatusOK, gin.H{
-			"mac":    macAddr,
-			"vendor": "Unknown",
-			"reason": "MAC address too short",
-		})
-		return
-	}
-
-	oui := strings.ReplaceAll(macAddr[:8], ":", "")
-	oui = strings.ToUpper(oui)
-
-	// Sample of OUI mappings for testing
-	testVendors := map[string]string{
-		"005056": "VMware",
-		"000C29": "VMware",
-		"080027": "Oracle VirtualBox",
-		"B827EB": "Raspberry Pi",
-		"28CDC1": "Apple",
-		"001E10": "Huawei",
-		"141877": "TP-Link",
-		"000121": "Cabletron Systems",
-		"C403A8": "Shenzhen Coship Electronics",
-		"5C3A45": "Liteon Technology Corporation",
-		"600308": "Apple",
-	}
-
-	vendor := "Unknown"
-	if v, exists := testVendors[oui]; exists {
-		vendor = v
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"mac":                 macAddr,
-		"oui":                 oui,
-		"vendor":              vendor,
-		"available_test_ouis": testVendors,
-		"note":                "This is a test endpoint. Real vendor detection uses JSON database.",
 	})
 }
 
