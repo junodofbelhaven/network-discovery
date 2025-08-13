@@ -364,9 +364,8 @@ func (h *Handlers) GetVendorDatabase(c *gin.Context) {
 			"info":   "GET  /api/v1/vendor-database",
 		},
 		"management": gin.H{
-			"edit_file":   "Edit configs/oui_vendors.json directly",
-			"reload_db":   "POST to /api/v1/vendor-database/reload",
-			"test_vendor": "GET /api/v1/test-vendor?mac=XX:XX:XX:XX:XX:XX",
+			"edit_file": "Edit configs/oui_vendors.json directly",
+			"reload_db": "POST to /api/v1/vendor-database/reload",
 		},
 	})
 }

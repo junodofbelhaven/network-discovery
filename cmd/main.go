@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -19,7 +21,7 @@ import (
 var (
 	port       = flag.String("port", "8080", "Server port")
 	host       = flag.String("host", "0.0.0.0", "Server host")
-	logLevel   = flag.String("log-level", "debug", "Log level (debug, info, warn, error)")
+	logLevel   = flag.String("log-level", "info", "Log level (debug, info, warn, error)")
 	configPath = flag.String("config", "configs/oui_vendors.json", "Path to OUI vendors JSON file")
 )
 
@@ -55,6 +57,9 @@ func main() {
 	// Start server in a goroutine
 	go func() {
 		logger.Infof("Server starting on %s:%s", *host, *port)
+
+		go openBrowser("http://localhost:8080/index")
+
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("Server failed to start: %v", err)
 		}
@@ -79,6 +84,24 @@ func main() {
 	}
 
 	logger.Info("Server exited")
+}
+
+func openBrowser(url string) {
+	var err error
+
+	switch runtime.GOOS {
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		fmt.Println("Failed to open browser:", err)
+	}
 }
 
 func printStartupInfo(host, port string) {
