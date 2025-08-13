@@ -1,23 +1,25 @@
 # 🌐 Network Discovery Tool
 
-SNMP protokolü ile ağ topolojisini analiz eden, Go ile yazılmış modern bir ağ keşif aracı. Ağınızdaki tüm SNMP-etkin cihazları otomatik olarak keşfeder ve detaylı bilgilerini toplar.
+SNMP ve ARP protokolleri ile ağ topolojisini analiz eden, Go ile yazılmış modern bir ağ keşif aracı. Ağınızdaki tüm cihazları otomatik olarak keşfeder ve detaylı bilgilerini toplar.
 
 ## ✨ Özellikler
 
-- 🔍 **Otomatik Ağ Keşfi**: CIDR notasyonu ile belirtilen ağ aralıklarını tarar
-- 📡 **SNMP v2c Desteği**: Standart SNMP protokolü ile cihaz bilgilerini toplar
-- 🖥️ **Cihaz Bilgisi**: IP, hostname, vendor, model, versiyon, uptime gibi detayları alır
-- 📖 **Arp Tablosu**: Ağdaki cihazların MAC adreslerini ve IP'lerini listeler (SNMP desteklemeyen cihazlara PING)
+- 🔍 **Full Network Scan**: SNMP + ARP kombinasyonu ile kapsamlı ağ keşfi
+- 📡 **SNMP v2c Desteği**: Detaylı cihaz bilgileri ile SNMP keşfi
+- 🌐 **ARP Tarama**: Tüm IP-etkin cihazları keşfetme
 - ⚡ **Yüksek Performans**: 50 eşzamanlı worker ile hızlı tarama
+- 🏷️ **Vendor Algılama**: JSON tabanlı OUI veritabanı ile vendor tanıma
+- 📱 **MAC Adresi Çözümleme**: Donanım adresi tanımlama
 - ⏱️ **Yanıt Süresi Ölçümü**: Her cihaz için ağ gecikmesini ölçer
 - 🌐 **REST API**: RESTful web servisleri ile kolay entegrasyon
 - 💻 **Web Arayüzü**: Kullanıcı dostu web tabanlı kontrol paneli
+- 📊 **Detaylı Raporlama**: Ağ istatistikleri ve cihaz envanteri
 
 ## 🚀 Hızlı Başlangıç
 
 ### Ön Gereksinimler
 
-- Go 1.21 veya üzeri
+- Go 1.23 veya üzeri
 - Docker (opsiyonel)
 - Git
 
@@ -35,37 +37,42 @@ go mod tidy
 go run cmd/main.go
 ```
 
-## Web GUI'ına bağlanma
+## Web GUI
 
-## <img width="1775" height="691" alt="image" src="https://github.com/user-attachments/assets/e027deab-6732-4690-ad4c-49f9371ec50d" />
+## <img width="1755" height="1586" alt="image" src="https://github.com/user-attachments/assets/579b2e48-e90e-4626-8f8d-71ed4cb25da1" />
 
-GUI'a bağlanmak için;
-
-- Uygulamayı başlatın
-- Herhangi bir web browserdan localhost:{port}/index sayfasına girin (Belirtilmediği sürece varsayılan port 8080 olarak başlar)
 
 ## 📖 API Dokümantasyonu
 
 ### Temel Endpoints
 
-| Method | Endpoint                     | Açıklama               |
-| ------ | ---------------------------- | ---------------------- |
-| GET    | `/api/v1/health`             | Servis durumu kontrolü |
-| GET    | `/api/v1/version`            | Versiyon bilgisi       |
-| POST   | `/api/v1/network/scan`       | Ağ taraması başlat     |
-| GET    | `/api/v1/network/quick-scan` | Hızlı cihaz keşfi      |
-| GET    | `/api/v1/device/{ip}`        | Tek cihaz taraması     |
+| Method | Endpoint                         | Açıklama                   |
+| ------ | -------------------------------- | -------------------------- |
+| GET    | `/api/v1/health`                 | Servis durumu kontrolü     |
+| GET    | `/api/v1/version`                | Versiyon bilgisi           |
+| GET    | `/api/v1/scan-methods`           | Tarama yöntemleri bilgisi  |
+| POST   | `/api/v1/network/full-scan`      | Full scan (SNMP + ARP)     |
+| POST   | `/api/v1/network/scan/snmp`      | Sadece SNMP taraması       |
+| POST   | `/api/v1/network/scan/arp`       | Sadece ARP taraması        |
+| POST   | `/api/v1/network/scan/full`      | Full scan (alternatif)     |
+| POST   | `/api/v1/network/scan`           | Legacy SNMP taraması       |
+| GET    | `/api/v1/network/quick-scan`     | Hızlı cihaz keşfi          |
+| GET    | `/api/v1/network/validate`       | Ağ aralığı doğrulama       |
+| GET    | `/api/v1/device/{ip}`            | Tek cihaz taraması         |
+| GET    | `/api/v1/vendor-database`        | Vendor veritabanı bilgisi  |
+| POST   | `/api/v1/vendor-database/reload` | Vendor veritabanı yenileme |
 
-### Ağ Taraması
+### Full Network Scan (Ana Endpoint)
 
-**POST** `/api/v1/network/scan`
+**POST** `/api/v1/network/full-scan`
 
 ```json
 {
   "network_range": "192.168.1.0/24",
   "communities": ["public", "private"],
-  "timeout": 5,
-  "retries": 2
+  "timeout": 2,
+  "retries": 1,
+  "scan_type": "full"
 }
 ```
 
@@ -77,31 +84,78 @@ GUI'a bağlanmak için;
     "devices": [
       {
         "ip": "192.168.1.1",
+        "mac_address": "AA:BB:CC:DD:EE:FF",
         "hostname": "router.local",
         "vendor": "Cisco",
         "description": "Cisco IOS Software...",
         "uptime": "45d 12h 30m 15s",
         "is_reachable": true,
-        "response_time_ms": 23
+        "response_time_ms": 23,
+        "scan_method": "COMBINED"
       }
     ],
     "total_count": 5,
-    "reachable_count": 3,
-    "scan_duration_ms": 15420
+    "reachable_count": 5,
+    "snmp_count": 3,
+    "arp_count": 2,
+    "scan_duration_ms": 15420,
+    "scan_method": "FULL"
   },
   "statistics": {
+    "total_devices": 5,
+    "reachable_devices": 5,
+    "snmp_devices": 3,
+    "arp_only_devices": 2,
+    "devices_with_mac": 5,
     "vendor_distribution": {
       "Cisco": 2,
-      "HP": 1
+      "HP": 1,
+      "Unknown": 2
+    },
+    "scan_method_distribution": {
+      "SNMP": 1,
+      "ARP": 2,
+      "COMBINED": 2
     },
     "avg_response_time_ms": 28
+  },
+  "scan_info": {
+    "scan_type": "full",
+    "network_range": "192.168.1.0/24",
+    "snmp_communities": ["public", "private"],
+    "timeout": 2,
+    "retries": 1,
+    "worker_count": 50
   }
+}
+```
+
+### Tip Özelinde Tarama
+
+**POST** `/api/v1/network/scan/snmp` (Sadece SNMP)
+
+```json
+{
+  "network_range": "192.168.1.0/24",
+  "communities": ["public", "private"],
+  "timeout": 2,
+  "retries": 1
+}
+```
+
+**POST** `/api/v1/network/scan/arp` (Sadece ARP)
+
+```json
+{
+  "network_range": "192.168.1.0/24",
+  "timeout": 2,
+  "retries": 1
 }
 ```
 
 ### Hızlı Tarama
 
-**GET** `/api/v1/network/quick-scan?network=192.168.1.0/24`
+**GET** `/api/v1/network/quick-scan?network=192.168.1.0/24&community=public`
 
 ```json
 {
@@ -112,12 +166,13 @@ GUI'a bağlanmak için;
 
 ### Tek Cihaz Taraması
 
-**GET** `/api/v1/device/192.168.1.1?community=public`
+**GET** `/api/v1/device/192.168.1.1?community=public&community=private`
 
 ```json
 {
   "device": {
     "ip": "192.168.1.1",
+    "mac_address": "AA:BB:CC:DD:EE:FF",
     "hostname": "router.local",
     "vendor": "Cisco",
     "model": "2960",
@@ -128,8 +183,79 @@ GUI'a bağlanmak için;
     "uptime": "45d 12h 30m 15s",
     "is_reachable": true,
     "response_time_ms": 23,
+    "scan_method": "SNMP",
     "last_seen": "2024-01-15T10:30:00Z"
   }
+}
+```
+
+### Tarama Yöntemleri Bilgisi
+
+**GET** `/api/v1/scan-methods`
+
+```json
+{
+  "scan_methods": {
+    "snmp": {
+      "name": "SNMP Scan",
+      "description": "Discovers devices using SNMP protocol...",
+      "recommended_settings": {
+        "timeout": "1-3 seconds",
+        "retries": "0-1"
+      }
+    },
+    "arp": {
+      "name": "ARP Scan",
+      "description": "Discovers devices using ARP protocol...",
+      "recommended_settings": {
+        "timeout": "1-2 seconds",
+        "retries": "0"
+      }
+    },
+    "full": {
+      "name": "Full Scan (SNMP + ARP)",
+      "description": "Combines both SNMP and ARP scanning methods...",
+      "recommended_settings": {
+        "timeout": "2-3 seconds",
+        "retries": "0-1"
+      }
+    }
+  },
+  "default": "full",
+  "recommended": "full"
+}
+```
+
+### Vendor Veritabanı Yönetimi
+
+**GET** `/api/v1/vendor-database`
+
+```json
+{
+  "status": "vendor database loaded from JSON file",
+  "config_path": "configs/oui_vendors.json",
+  "description": "External JSON-based OUI vendor database"
+}
+```
+
+**POST** `/api/v1/vendor-database/reload`
+
+```json
+{
+  "status": "reload triggered",
+  "message": "Vendor database reloaded from configs/oui_vendors.json",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+### Ağ Aralığı Doğrulama
+
+**GET** `/api/v1/network/validate?network=192.168.1.0/24`
+
+```json
+{
+  "valid": true,
+  "network": "192.168.1.0/24"
 }
 ```
 
@@ -145,41 +271,28 @@ network-discovery/
 │   ├── api/               # HTTP handlers ve routes
 │   ├── discovery/         # Ağ keşif servisleri
 │   ├── models/            # Veri modelleri
-│   └── snmp/              # SNMP istemcisi
-├── pkg/                   # Genel yardımcı paketler
-├── frontend/              # Web arayüzü
-├── config.yaml            # Konfigürasyon
-├── docker-compose.yml     # Docker yapılandırması
-├── Dockerfile             # Container tanımı
-├── Makefile              # Build ve deployment
+│   ├── snmp/              # SNMP istemcisi
+│   └── arp/               # ARP tarayıcı ve vendor yönetimi
+├── vue-front/             # Frontend kaynak kodları
+│   └── frontend/          # Vue.js uygulaması
+├── frontend-build/        # Derlenmiş web arayüzü
+│   └── dist/              # Statik dosyalar
+├── configs/               # Konfigürasyon dosyaları
+│   └── oui_vendors.json  # Vendor veritabanı
+├── config.yaml            # Ana konfigürasyon
+├── go.mod                 # Go modül tanımı
+├── go.sum                 # Go bağımlılık sağlama toplamları
 └── README.md             # Dokümantasyon
 ```
 
-## 🔧 Konfigürasyon
+### Komut Satırı Parametreleri
 
-Uygulama `config.yaml` dosyası ile yapılandırılabilir:
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-snmp:
-  timeout: 5s
-  retries: 2
-  default_communities:
-    - "public"
-    - "private"
-    - "community"
-
-scanning:
-  max_workers: 50
-  max_scan_duration: 10m
-
-logging:
-  level: "info"
-  format: "json"
-```
+| Parametre    | Açıklama              | Varsayılan                 |
+| ------------ | --------------------- | -------------------------- |
+| `-port`      | HTTP sunucu portu     | `8080`                     |
+| `-host`      | HTTP sunucu host'u    | `0.0.0.0`                  |
+| `-log-level` | Log seviyesi          | `debug`                    |
+| `-config`    | Vendor config dosyası | `configs/oui_vendors.json` |
 
 ### Ortam Değişkenleri
 
@@ -206,6 +319,10 @@ logging:
 - ✅ **Netgear**: ProSafe serisi
 - ✅ **D-Link**: DGS, DES serisi
 - ✅ **TP-Link**: Managed switch'ler
+- ✅ **Apple**: Mac cihazları
+- ✅ **Intel**: Network kartları
+- ✅ **VMware**: Sanal makineler
+- ✅ **Raspberry Pi**: IoT cihazları
 
 ### SNMP Bilgileri
 
@@ -216,6 +333,7 @@ Uygulama aşağıdaki SNMP OID'lerini kullanır:
 - `1.3.6.1.2.1.1.4.0` - System Contact
 - `1.3.6.1.2.1.1.6.0` - System Location
 - `1.3.6.1.2.1.1.3.0` - System Uptime
+- `1.3.6.1.2.1.2.2.1.6` - Interface Physical Address
 
 ## 🔒 Güvenlik
 
@@ -223,7 +341,9 @@ Uygulama aşağıdaki SNMP OID'lerini kullanır:
 
 SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 
-- SNMPyi sadece güvenli ağlarda kullanın
+- SNMP'yi sadece güvenli ağlarda kullanın
+- Varsayılan community string'leri değiştirin
+- Mümkünse SNMPv3 kullanın (gelecek sürümlerde)
 
 ## 🐛 Sorun Giderme
 
@@ -236,10 +356,17 @@ SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 - Firewall kurallarını kontrol edin (UDP 161 portu)
 - SNMP servisinin güvenlik kısmından hangi bağlantılardan bağlantı kabul ettiğini kontrol edin
 
+**ARP tarama çalışmıyor:**
+
+- Ping komutunun sistem üzerinde mevcut olduğunu kontrol edin
+- ARP komutunun sistem üzerinde mevcut olduğunu kontrol edin
+- Hedef cihazların aynı ağ segmentinde olduğunu kontrol edin
+
 **Yavaş tarama:**
 
 - Worker sayısını artırın (`max_workers`)
 - Timeout değerini azaltın
+- Retry sayısını azaltın
 
 **Memory kullanımı yüksek:**
 
@@ -254,6 +381,11 @@ SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 
 # Belirli bir cihazı test et
 curl "http://localhost:8080/api/v1/device/192.168.1.1?community=public"
+
+# Full scan test et
+curl -X POST http://localhost:8080/api/v1/network/full-scan \
+  -H "Content-Type: application/json" \
+  -d '{"network_range":"192.168.1.0/24","scan_type":"full"}'
 ```
 
 ### Log Analizi
