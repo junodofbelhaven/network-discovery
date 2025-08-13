@@ -6,12 +6,12 @@ SNMP protokolü ile ağ topolojisini analiz eden, Go ile yazılmış modern bir 
 
 - 🔍 **Otomatik Ağ Keşfi**: CIDR notasyonu ile belirtilen ağ aralıklarını tarar
 - 📡 **SNMP v2c Desteği**: Standart SNMP protokolü ile cihaz bilgilerini toplar
+- 🖥️ **Cihaz Bilgisi**: IP, hostname, vendor, model, versiyon, uptime gibi detayları alır
+- 📖 **Arp Tablosu**: Ağdaki cihazların MAC adreslerini ve IP'lerini listeler (SNMP desteklemeyen cihazlara PING)
 - ⚡ **Yüksek Performans**: 50 eşzamanlı worker ile hızlı tarama
-- 🏷️ **Vendor Algılama**: Cisco, Juniper, Huawei, HP gibi popüler markaları otomatik tanır
 - ⏱️ **Yanıt Süresi Ölçümü**: Her cihaz için ağ gecikmesini ölçer
 - 🌐 **REST API**: RESTful web servisleri ile kolay entegrasyon
 - 💻 **Web Arayüzü**: Kullanıcı dostu web tabanlı kontrol paneli
-- 📊 **Detaylı Raporlama**: Ağ istatistikleri ve cihaz envantери
 
 ## 🚀 Hızlı Başlangıç
 
@@ -39,7 +39,7 @@ go run cmd/main.go
 
 ## <img width="1775" height="691" alt="image" src="https://github.com/user-attachments/assets/e027deab-6732-4690-ad4c-49f9371ec50d" />
 
-Uygulama şuanda GUI olarak sadece belirtilen ip aralığında scan yapmaya yarayan bir web page sunuyor. GUI'a bağlanmak için;
+GUI'a bağlanmak için;
 
 - Uygulamayı başlatın
 - Herhangi bir web browserdan localhost:{port}/index sayfasına girin (Belirtilmediği sürece varsayılan port 8080 olarak başlar)
@@ -223,9 +223,7 @@ Uygulama aşağıdaki SNMP OID'lerini kullanır:
 
 SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
 
-- SNMPyi sadece güvenli ağlarda kullanın 
-
-
+- SNMPyi sadece güvenli ağlarda kullanın
 
 ## 🐛 Sorun Giderme
 
@@ -279,14 +277,7 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosy
 
 - 🐳 **Docker Desteği**: Kolay kurulum ve deployment
 - 🔒 **SNMPv3 Desteği**: Authorization ve encryption desteği
-- ❗️ **IMCP ile Ping**: SNMP desteklemeyen cihazlara ping yollayarak ağı tarama
 
 ##
 
 ⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
-
-
-
-
-
-

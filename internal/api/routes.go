@@ -36,11 +36,28 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 		// Health and status endpoints
 		v1.GET("/health", handlers.GetHealth)
 		v1.GET("/version", handlers.GetVersion)
+		v1.GET("/scan-methods", handlers.GetScanMethods)
+
+		// Vendor database endpoints
+		vendor := v1.Group("/vendor-database")
+		{
+			vendor.GET("/", handlers.GetVendorDatabase)
+			vendor.POST("/reload", handlers.ReloadVendorDatabase)
+		}
 
 		// Network discovery endpoints
 		network := v1.Group("/network")
 		{
+			// Full scan endpoint - primary endpoint for comprehensive discovery
+			network.POST("/full-scan", handlers.PerformFullScan)
+
+			// Scan by type - allows specifying scan method in URL
+			network.POST("/scan/:type", handlers.ScanNetworkByType)
+
+			// Legacy SNMP-only scan endpoint (for backward compatibility)
 			network.POST("/scan", handlers.ScanNetwork)
+
+			// Utility endpoints
 			network.GET("/quick-scan", handlers.QuickScan)
 			network.GET("/validate", handlers.ValidateNetwork)
 		}
@@ -53,8 +70,8 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 	}
 
 	// Serve static files (if needed for frontend)
-	router.Static("/static", "./static")
-	router.LoadHTMLGlob("templates/*")
+	router.Static("/static", "./frontend-build/dist")
+	router.LoadHTMLGlob("./frontend-build/dist/index.html")
 
 	router.GET("/index", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
@@ -67,17 +84,41 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 		c.JSON(200, gin.H{
 			"message": "Network Discovery API",
 			"version": "1.0.0",
-			"endpoints": gin.H{
-				"health":       "GET /api/v1/health",
-				"version":      "GET /api/v1/version",
-				"scan_network": "POST /api/v1/network/scan",
-				"quick_scan":   "GET /api/v1/network/quick-scan?network=<CIDR>",
-				"validate":     "GET /api/v1/network/validate?network=<CIDR>",
-				"scan_device":  "GET /api/v1/device/<IP>",
+			"features": []string{
+				"SNMP Network Discovery",
+				"ARP Network Scanning",
+				"Full Network Scan (SNMP + ARP)",
+				"Device Information Extraction",
+				"MAC Address Resolution",
+				"Vendor Identification",
 			},
+			"endpoints": gin.H{
+				"health":       "GET  /api/v1/health",
+				"version":      "GET  /api/v1/version",
+				"scan_methods": "GET  /api/v1/scan-methods",
+				"full_scan":    "POST /api/v1/network/full-scan",
+				"scan_by_type": "POST /api/v1/network/scan/{type}",
+				"legacy_scan":  "POST /api/v1/network/scan",
+				"quick_scan":   "GET  /api/v1/network/quick-scan?network=<CIDR>",
+				"validate":     "GET  /api/v1/network/validate?network=<CIDR>",
+				"scan_device":  "GET  /api/v1/device/<IP>",
+			},
+			"scan_types": []string{"snmp", "arp", "full"},
 			"examples": gin.H{
-				"scan_network": gin.H{
-					"url": "POST /api/v1/network/scan",
+				"full_scan": gin.H{
+					"url":         "POST /api/v1/network/full-scan",
+					"description": "Comprehensive network discovery using both SNMP and ARP",
+					"body": gin.H{
+						"network_range": "192.168.1.0/24",
+						"communities":   []string{"public", "private"},
+						"timeout":       5,
+						"retries":       2,
+						"scan_type":     "full",
+					},
+				},
+				"snmp_scan": gin.H{
+					"url":         "POST /api/v1/network/scan/snmp",
+					"description": "SNMP-only network discovery",
 					"body": gin.H{
 						"network_range": "192.168.1.0/24",
 						"communities":   []string{"public", "private"},
@@ -85,8 +126,52 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 						"retries":       2,
 					},
 				},
+				"arp_scan": gin.H{
+					"url":         "POST /api/v1/network/scan/arp",
+					"description": "ARP-only network discovery",
+					"body": gin.H{
+						"network_range": "192.168.1.0/24",
+						"timeout":       5,
+						"retries":       2,
+					},
+				},
 				"quick_scan":  "GET /api/v1/network/quick-scan?network=192.168.1.0/24",
 				"scan_device": "GET /api/v1/device/192.168.1.1?community=public&community=private",
+			},
+			"response_format": gin.H{
+				"full_scan_response": gin.H{
+					"topology": gin.H{
+						"devices":          "array of discovered devices",
+						"total_count":      "total number of devices found",
+						"reachable_count":  "number of reachable devices",
+						"snmp_count":       "number of SNMP-enabled devices",
+						"arp_count":        "number of ARP-only devices",
+						"scan_method":      "scan method used (SNMP/ARP/FULL)",
+						"scan_duration_ms": "scan duration in milliseconds",
+					},
+					"statistics": gin.H{
+						"vendor_distribution":      "device vendor breakdown",
+						"scan_method_distribution": "how devices were discovered",
+						"devices_with_mac":         "number of devices with MAC addresses",
+						"response_time_stats":      "network response statistics",
+					},
+					"scan_info": gin.H{
+						"scan_type":        "type of scan performed",
+						"network_range":    "scanned network range",
+						"snmp_communities": "SNMP communities used",
+						"worker_count":     "number of concurrent workers",
+					},
+				},
+				"device_properties": gin.H{
+					"ip":            "IP address",
+					"mac_address":   "MAC address (if available)",
+					"hostname":      "device hostname",
+					"description":   "SNMP system description",
+					"vendor":        "detected vendor",
+					"uptime":        "system uptime",
+					"response_time": "response time in milliseconds",
+					"scan_method":   "discovery method (SNMP/ARP/COMBINED)",
+				},
 			},
 		})
 	})
