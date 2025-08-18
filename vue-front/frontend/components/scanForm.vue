@@ -1,420 +1,823 @@
-
+<!-- ===== scanForm.vue ===== -->
 <template>
-  <form class="scan-form" @submit.prevent="startScan">
-    <!-- Scan Mode -->
-    <div class="form-group">
-      <label for="scanMode" class="modern-label">
-        <span class="label-icon">🎯</span>
-        Scan Mode
-      </label>
-      <div class="input-wrapper">
-        <select id="scanMode" v-model="scanMode" class="modern-select">
-          <option value="full-scan">Full Network Scan</option>
-          <option value="single-ip">Single IP Scan</option>
-        </select>
-        <div class="select-arrow">
-          <svg width="12" height="8" viewBox="0 0 12 8">
-            <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/>
-          </svg>
-        </div>
+  <form @submit.prevent="startScan" class="scan-form-modern">
+    <!-- Form Header -->
+    <div class="form-header">
+      <h3 class="form-title">
+        <span class="form-icon">🔍</span>
+        Network Scanner Configuration
+      </h3>
+      <p class="form-subtitle">Configure and initiate network discovery</p>
+    </div>
+
+    <!-- Scan Mode Selection -->
+    <div class="form-section">
+      <div class="section-title">Scan Mode</div>
+      <div class="radio-group">
+        <label class="radio-card">
+          <input type="radio" v-model="scanMode" value="full-scan" class="radio-input" />
+          <div class="radio-content">
+            <span class="radio-icon">🌐</span>
+            <div class="radio-text">
+              <div class="radio-title">Network Range Scan</div>
+              <div class="radio-subtitle">Scan entire network subnet</div>
+            </div>
+          </div>
+        </label>
+
+        <label class="radio-card">
+          <input type="radio" v-model="scanMode" value="single-ip" class="radio-input" />
+          <div class="radio-content">
+            <span class="radio-icon">🎯</span>
+            <div class="radio-text">
+              <div class="radio-title">Single Device</div>
+              <div class="radio-subtitle">Target specific IP address</div>
+            </div>
+          </div>
+        </label>
       </div>
     </div>
 
-    <!-- Network Range -->
-    <div class="form-group" v-if="scanMode === 'full-scan'">
-      <label for="networkRange" class="modern-label">
-        <span class="label-icon">🌐</span>
+    <!-- Network Range Input (for full scan) -->
+    <div v-if="scanMode === 'full-scan'" class="form-group-modern">
+      <label for="networkRange" class="input-label">
+        <span class="label-icon">📍</span>
         Network Range (CIDR)
       </label>
-      <div class="input-wrapper">
+      <div class="input-container">
         <input
           type="text"
           id="networkRange"
-          placeholder="ex, 192.168.1.0/24"
           v-model="networkRange"
-          class="modern-input"
+          placeholder="192.168.1.0/24"
+          class="modern-input-field"
+          required
         />
-        <div class="input-focus-line"></div>
+        <div class="input-helper">Enter network in CIDR notation</div>
       </div>
     </div>
 
-    <!-- Single IP -->
-    <div class="form-group" v-if="scanMode === 'single-ip'">
-      <label for="targetIp" class="modern-label">
+    <!-- Single IP Input (for single scan) -->
+    <div v-if="scanMode === 'single-ip'" class="form-group-modern">
+      <label for="targetIp" class="input-label">
         <span class="label-icon">🎯</span>
-        Target IP
+        Target IP Address
       </label>
-      <div class="input-wrapper">
+      <div class="input-container">
         <input
           type="text"
           id="targetIp"
-          placeholder="ex, 192.168.1.10"
           v-model="targetIp"
-          class="modern-input"
+          placeholder="192.168.1.100"
+          class="modern-input-field"
+          required
         />
-        <div class="input-focus-line"></div>
+        <div class="input-helper">Enter specific device IP</div>
       </div>
     </div>
 
-    <!-- Scan Type (only for full scan) -->
-    <div class="form-group" v-if="scanMode === 'full-scan'">
-      <label for="scanType" class="modern-label">
-        <span class="label-icon">⚡</span>
-        Scan Type
+    <!-- Scan Type Selection -->
+    <div class="form-group-modern">
+      <label for="scanType" class="input-label">
+        <span class="label-icon">⚙️</span>
+        Scan Protocol
       </label>
-      <div class="input-wrapper">
-        <select id="scanType" v-model="scanType" class="modern-select">
+      <div class="select-container">
+        <select id="scanType" v-model="scanType" class="modern-select-field">
           <option value="full">Full Scan (SNMP + ARP)</option>
-          <option value="snmp">SNMP Only</option>
-          <option value="arp">ARP Only</option>
+          <option value="snmp">SNMP Protocol Only</option>
+          <option value="arp">ARP Protocol Only</option>
         </select>
         <div class="select-arrow">
           <svg width="12" height="8" viewBox="0 0 12 8">
-            <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="2" fill="none" />
           </svg>
         </div>
       </div>
     </div>
 
     <!-- SNMP Communities -->
-    <div class="form-group" v-if="scanMode === 'full-scan'">
-      <label for="communities" class="modern-label">
+    <div v-if="scanType === 'full' || scanType === 'snmp'" class="form-group-modern">
+      <label for="communities" class="input-label">
         <span class="label-icon">🔐</span>
         SNMP Communities
       </label>
-      <div class="input-wrapper">
+      <div class="input-container">
         <input
           type="text"
           id="communities"
-          placeholder="public,private,community"
           v-model="communities"
-          class="modern-input"
+          placeholder="public, private, community"
+          class="modern-input-field"
         />
-        <div class="input-focus-line"></div>
+        <div class="input-helper">Comma-separated community strings</div>
       </div>
     </div>
 
-    <button type="submit" class="modern-btn" :disabled="loading">
-      <span class="btn-content">
-        <span class="btn-icon" v-if="!loading">🚀</span>
-        <span class="btn-text">{{ loading ? 'Scanning...' : 'Start Scan' }}</span>
-      </span>
+    <!-- Advanced Settings -->
+    <div class="advanced-settings">
+      <button type="button" @click="showAdvanced = !showAdvanced" class="advanced-toggle">
+        <span class="toggle-icon">{{ showAdvanced ? '▼' : '▶' }}</span>
+        Advanced Settings
+      </button>
 
+      <transition name="slide">
+        <div v-if="showAdvanced" class="advanced-content">
+          <div class="settings-grid">
+            <div class="form-group-modern">
+              <label for="timeout" class="input-label">
+                <span class="label-icon">⏱️</span>
+                Timeout (seconds)
+              </label>
+              <input
+                type="number"
+                id="timeout"
+                v-model="timeout"
+                min="1"
+                max="30"
+                class="modern-input-field"
+              />
+            </div>
+
+            <div class="form-group-modern">
+              <label for="retries" class="input-label">
+                <span class="label-icon">🔄</span>
+                Retries
+              </label>
+              <input
+                type="number"
+                id="retries"
+                v-model="retries"
+                min="0"
+                max="5"
+                class="modern-input-field"
+              />
+            </div>
+          </div>
+        </div>
+      </transition>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="scan-button" :disabled="loading">
+      <div class="button-content">
+        <span v-if="!loading" class="button-icon">🚀</span>
+        <div v-if="loading" class="button-spinner"></div>
+        <span class="button-text">
+          {{ loading ? 'Scanning Network...' : 'Start Discovery' }}
+        </span>
+      </div>
+      <div class="button-glow"></div>
     </button>
   </form>
 
-  <div v-if="loading" class="loading-container">
-    <div class="modern-spinner">
-      <div class="spinner-ring"></div>
-      <div class="spinner-ring"></div>
-      <div class="spinner-ring"></div>
+  <!-- Loading Overlay -->
+  <transition name="fade">
+    <div v-if="loading" class="scanning-overlay">
+      <div class="scanning-content">
+        <div class="scanning-animation">
+          <div class="radar-sweep"></div>
+          <div class="radar-dot"></div>
+          <div class="radar-dot"></div>
+          <div class="radar-dot"></div>
+        </div>
+        <h3 class="scanning-title">Discovering Network Devices</h3>
+        <p class="scanning-subtitle">{{ scanningMessage }}</p>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill"></div>
+        </div>
+      </div>
     </div>
-    <p class="loading-text">Scanning network...</p>
-    <div class="loading-progress">
-      <div class="progress-bar"></div>
-    </div>
-  </div>
+  </transition>
 
+  <!-- Device List Component -->
   <device-list :devices="devices"></device-list>
 </template>
 
 <script>
-import DeviceList from "./DeviceList.vue";
+import DeviceList from './DeviceList.vue'
 
 export default {
+  name: 'ScanForm',
   components: {
-    "device-list": DeviceList,
+    'device-list': DeviceList,
   },
   data() {
     return {
       loading: false,
-      scanMode: "full-scan",
-      networkRange: "",
-      targetIp: "",
-      scanType: "full",
-      communities: "public",
+      scanMode: 'full-scan',
+      networkRange: '192.168.1.0/24',
+      targetIp: '',
+      scanType: 'full',
+      communities: 'public',
       timeout: 2,
       retries: 0,
       devices: [],
-    };
+      showAdvanced: false,
+      scanningMessage: 'Initializing scan...',
+    }
   },
   methods: {
     async startScan() {
-      this.loading = true;
+      this.loading = true
+      this.devices = []
+      this.updateScanningMessage()
+
       try {
-        if (this.scanMode === "full-scan") {
+        if (this.scanMode === 'full-scan') {
           const payload = {
             network_range: this.networkRange,
             scan_type: this.scanType,
             communities: this.communities
-              .split(",")
+              .split(',')
               .map((c) => c.trim())
               .filter((c) => c.length > 0),
             timeout: this.timeout,
             retries: this.retries,
-          };
+          }
 
-          const res = await fetch("http://localhost:8080/api/v1/network/full-scan", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
+          const res = await fetch('http://localhost:8080/api/v1/network/full-scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
-          });
+          })
 
-          if (!res.ok) throw new Error("Full scan failed");
-          const data = await res.json();
-          this.devices = data.topology?.devices || [];
-        } else if (this.scanMode === "single-ip") {
+          if (!res.ok) throw new Error('Network scan failed')
+
+          const data = await res.json()
+          this.devices = data.topology?.devices || []
+        } else if (this.scanMode === 'single-ip') {
           const communitiesArray = this.communities
-            .split(",")
+            .split(',')
             .map((c) => c.trim())
-            .filter((c) => c.length > 0);
+            .filter((c) => c.length > 0)
 
-          const query = communitiesArray
-            .map((c) => `community=${encodeURIComponent(c)}`)
-            .join("&");
+          const query = communitiesArray.map((c) => `community=${encodeURIComponent(c)}`).join('&')
 
           const url = `http://localhost:8080/api/v1/device/${encodeURIComponent(
-            this.targetIp.trim()
-          )}?${query}`;
+            this.targetIp.trim(),
+          )}?${query}`
 
-          const res = await fetch(url);
+          const res = await fetch(url)
+          if (!res.ok) throw new Error('Device scan failed')
 
-          if (!res.ok) throw new Error("Single IP scan failed");
-
-          const data = await res.json();
-
-          this.devices = [data.device];
+          const data = await res.json()
+          this.devices = [data.device]
         }
+
+        this.$emit('scan-complete', this.devices)
       } catch (err) {
-        alert(err.message);
-        console.error(err);
+        console.error('Scan error:', err)
+        alert(`Scan failed: ${err.message}`)
       } finally {
-        this.loading = false;
+        this.loading = false
       }
     },
+
+    updateScanningMessage() {
+      const messages = [
+        'Initializing scan...',
+        'Discovering devices...',
+        'Querying SNMP agents...',
+        'Resolving MAC addresses...',
+        'Gathering device information...',
+        'Analyzing network topology...',
+      ]
+
+      let index = 0
+      const interval = setInterval(() => {
+        if (!this.loading) {
+          clearInterval(interval)
+          return
+        }
+        this.scanningMessage = messages[index % messages.length]
+        index++
+      }, 2000)
+    },
   },
-};
+}
 </script>
 
 <style scoped>
-.scan-form {
-  display: grid;
-  gap: 25px;
-  margin-bottom: 40px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
+/* ===== FORM CONTAINER ===== */
+.scan-form-modern {
+  background: linear-gradient(135deg, #232136 0%, #1a1928 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(184, 181, 255, 0.1);
   position: relative;
+  overflow: hidden;
 }
 
-.modern-label {
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #4a5568;
+.scan-form-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== FORM HEADER ===== */
+.form-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.form-title {
+  color: #fffffe;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.form-icon {
+  font-size: 1.75rem;
+}
+
+.form-subtitle {
+  color: #94a1b2;
   font-size: 0.95rem;
-  letter-spacing: 0.3px;
+  margin: 0;
+}
+
+/* ===== FORM SECTIONS ===== */
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  color: #b8b5ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+}
+
+/* ===== RADIO GROUP ===== */
+.radio-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.radio-card {
+  position: relative;
+  cursor: pointer;
+}
+
+.radio-input {
+  position: absolute;
+  opacity: 0;
+}
+
+.radio-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(184, 181, 255, 0.05);
+  border: 2px solid rgba(184, 181, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.radio-input:checked + .radio-content {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.radio-icon {
+  font-size: 1.5rem;
+}
+
+.radio-text {
+  flex: 1;
+}
+
+.radio-title {
+  color: #fffffe;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.radio-subtitle {
+  color: #94a1b2;
+  font-size: 0.8rem;
+}
+
+/* ===== FORM GROUPS ===== */
+.form-group-modern {
+  margin-bottom: 1.5rem;
+}
+
+.input-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #b8b5ff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
 }
 
 .label-icon {
   font-size: 1.1rem;
 }
 
-.input-wrapper {
+.input-container {
   position: relative;
 }
 
-.modern-input,
-.modern-select {
+.modern-input-field {
   width: 100%;
-  padding: 16px 18px;
-  border: 2px solid #acbed8; 
+  padding: 1rem 1.25rem;
+  background: rgba(184, 181, 255, 0.05);
+  border: 2px solid rgba(184, 181, 255, 0.2);
   border-radius: 12px;
-  font-size: 16px;
-  background: #e8ebf7; 
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 1px 3px rgba(172, 190, 216, 0.2);
-  font-family: inherit;
-  color: #2d3748;
+  color: #fffffe;
+  font-size: 1rem;
+  transition: all 0.3s ease;
 }
 
-.modern-select {
+.modern-input-field:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+}
+
+.modern-input-field::placeholder {
+  color: #94a1b2;
+}
+
+.input-helper {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #94a1b2;
+}
+
+/* ===== SELECT FIELD ===== */
+.select-container {
+  position: relative;
+}
+
+.modern-select-field {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1.25rem;
+  background: rgba(184, 181, 255, 0.05);
+  border: 2px solid rgba(184, 181, 255, 0.2);
+  border-radius: 12px;
+  color: #fffffe;
+  font-size: 1rem;
   appearance: none;
-  background-image: none;
   cursor: pointer;
-  padding-right: 45px;
+  transition: all 0.3s ease;
+}
+
+.modern-select-field:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
 }
 
 .select-arrow {
   position: absolute;
-  right: 15px;
+  right: 1.25rem;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: #4a5568;
+  color: #b8b5ff;
   transition: transform 0.3s ease;
 }
 
-.modern-select:focus + .select-arrow {
+.modern-select-field:focus + .select-arrow {
   transform: translateY(-50%) rotate(180deg);
 }
 
-.modern-input:focus,
-.modern-select:focus {
-  outline: none;
-  border-color: #f2d398; 
-  box-shadow: 
-    0 0 0 3px rgba(242, 211, 152, 0.3),
-    0 4px 12px rgba(172, 190, 216, 0.3);
-  transform: translateY(-1px);
+/* ===== ADVANCED SETTINGS ===== */
+.advanced-settings {
+  margin: 2rem 0;
 }
 
-.modern-btn {
-  background: linear-gradient(135deg, #f2d398 0%, #acbed8 100%);
-  color: #2d3748;
+.advanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #b8b5ff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.advanced-toggle:hover {
+  color: #667eea;
+}
+
+.toggle-icon {
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.advanced-content {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(184, 181, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(184, 181, 255, 0.1);
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+/* ===== SCAN BUTTON ===== */
+.scan-button {
+  width: 100%;
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   border-radius: 12px;
-  padding: 18px 32px;
-  font-size: 16px;
-  font-weight: 600;
+  color: #fffffe;
+  font-size: 1.1rem;
+  font-weight: 700;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
-  box-shadow: 0 4px 15px rgba(172, 190, 216, 0.5);
-  min-height: 60px;
+  margin-top: 2rem;
 }
 
-.btn-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  position: relative;
-  z-index: 2;
-}
-
-.btn-icon {
-  font-size: 1.4rem;
-}
-
-
-
-.modern-btn:hover {
+.scan-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(172, 190, 216, 0.6);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
 }
 
-
-
-.modern-btn:disabled {
+.scan-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 2px 8px rgba(172, 190, 216, 0.2);
 }
 
-.loading-container {
+.button-content {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
-  background: #e8ebf7; 
-  border-radius: 16px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 20px rgba(172, 190, 216, 0.2);
-}
-
-.modern-spinner {
+  justify-content: center;
+  gap: 0.75rem;
   position: relative;
-  width: 60px;
-  height: 60px;
-  margin-bottom: 20px;
+  z-index: 1;
 }
 
-.spinner-ring {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  border: 3px solid transparent;
-  border-top-color: #acbed8; 
-  border-radius: 50%;
-  animation: spin 1.5s linear infinite;
+.button-icon {
+  font-size: 1.3rem;
 }
 
-.spinner-ring:nth-child(2) {
-  width: 40px;
-  height: 40px;
-  top: 10px;
-  left: 10px;
-  border-top-color: #f2d398; 
-  animation-duration: 1s;
-  animation-direction: reverse;
-}
-
-.spinner-ring:nth-child(3) {
+.button-spinner {
   width: 20px;
   height: 20px;
-  top: 20px;
-  left: 20px;
-  border-top-color: #acbed8;
-  animation-duration: 0.8s;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fffffe;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.loading-text {
-  color: #4a5568;
-  font-weight: 500;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
+.button-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-.loading-progress {
-  width: 200px;
+.scan-button:hover .button-glow {
+  opacity: 1;
+}
+
+/* ===== SCANNING OVERLAY ===== */
+.scanning-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 14, 23, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.scanning-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.scanning-animation {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  position: relative;
+}
+
+.radar-sweep {
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(102, 126, 234, 0.3);
+  border-radius: 50%;
+  position: relative;
+}
+
+.radar-sweep::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg, transparent 0deg, #667eea 30deg, transparent 60deg);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: radar-sweep 2s linear infinite;
+}
+
+@keyframes radar-sweep {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.radar-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #48bb78;
+  border-radius: 50%;
+  animation: radar-ping 2s ease-out infinite;
+}
+
+.radar-dot:nth-child(2) {
+  top: 20%;
+  left: 30%;
+  animation-delay: 0.3s;
+}
+
+.radar-dot:nth-child(3) {
+  top: 60%;
+  left: 70%;
+  animation-delay: 0.6s;
+}
+
+.radar-dot:nth-child(4) {
+  top: 40%;
+  left: 80%;
+  animation-delay: 0.9s;
+}
+
+@keyframes radar-ping {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+.scanning-title {
+  color: #fffffe;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.scanning-subtitle {
+  color: #94a1b2;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.progress-bar-container {
+  width: 100%;
   height: 4px;
-  background: #acbed8;
+  background: rgba(184, 181, 255, 0.2);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.progress-bar {
-  width: 100%;
+.progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #acbed8, #f2d398);
-  border-radius: 2px;
-  animation: loading-progress 2s ease-in-out infinite;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  animation: progress-animation 2s ease-in-out infinite;
 }
 
+@keyframes progress-animation {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-@keyframes loading-progress {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(100%); }
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
 }
 
+.slide-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .scan-form {
-    gap: 20px;
+  .scan-form-modern {
+    padding: 1.5rem;
   }
-  
-  .modern-input,
-  .modern-select {
-    padding: 14px 16px;
-    font-size: 16px;
+
+  .form-title {
+    font-size: 1.25rem;
   }
-  
-  .modern-btn {
-    padding: 16px 28px;
-    font-size: 15px;
+
+  .radio-group {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
