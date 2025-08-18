@@ -70,7 +70,7 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 	}
 
 	// Serve static files (if needed for frontend)
-	router.Static("/static", "./frontend-build/dist")
+	router.Static("/assets", "./frontend-build/dist/assets")
 	router.LoadHTMLGlob("./frontend-build/dist/index.html")
 
 	router.GET("/index", func(c *gin.Context) {

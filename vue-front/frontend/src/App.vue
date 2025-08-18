@@ -12,19 +12,17 @@
 <script>
 import headerBar from '/components/headerBar.vue'
 import inputPlace from '../components/inputPlace.vue'
-import footerBar from "../components/footerBar.vue"
+import footerBar from '../components/footerBar.vue'
 
-export default{
-  components : {
-    "header-bar" : headerBar,
-    "input-place" : inputPlace,
-    "footer-bar" : footerBar
+export default {
+  components: {
+    'header-bar': headerBar,
+    'input-place': inputPlace,
+    'footer-bar': footerBar,
   },
-  data(){
-    return{
-
-    }
-  }
+  data() {
+    return {}
+  },
 }
 </script>
 
@@ -36,10 +34,11 @@ export default{
 }
 
 .bodydiv {
-  font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #ACBED8 0%, #E8EBF7 50%, #F2D398 100%);
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* New harmonious dark blue to purple gradient background */
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   min-height: 100vh;
-  color: #333;
+  color: #f1f5f9;
   position: relative;
   overflow-x: hidden;
 }
@@ -50,10 +49,11 @@ export default{
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(172, 190, 216, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(242, 211, 152, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(172, 190, 216, 0.2) 0%, transparent 50%);
+  /* Subtle pattern with harmonious colors */
+  background:
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
   animation: float 20s ease-in-out infinite;
   z-index: -1;
 }
@@ -65,7 +65,8 @@ export default{
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
   }
   33% {
@@ -76,23 +77,7 @@ export default{
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: rgba(232, 235, 247, 0.3);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #ACBED8, #F2D398);
-  border-radius: 10px;
-}
-
-
-/* Global button animations */
+/* Updated button hover effects */
 button {
   position: relative;
   overflow: hidden;
@@ -105,10 +90,12 @@ button::before {
   left: 50%;
   width: 0;
   height: 0;
-  background: rgba(242, 211, 152, 0.2);
+  background: rgba(59, 130, 246, 0.15);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition:
+    width 0.6s,
+    height 0.6s;
 }
 
 button:hover::before {

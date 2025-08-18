@@ -11,10 +11,6 @@
         </div>
         <div class="stats-container">
           <div class="stat-card">
-            <div class="stat-value">{{ devices.length }}</div>
-            <div class="stat-label">Total Devices</div>
-          </div>
-          <div class="stat-card">
             <div class="stat-value">{{ onlineDevices }}</div>
             <div class="stat-label">Online</div>
           </div>
@@ -235,17 +231,17 @@ export default {
 <style scoped>
 /* ===== ROOT VARIABLES ===== */
 :root {
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --snmp-color: #667eea;
-  --arp-color: #48bb78;
-  --bg-primary: #0f0e17;
-  --bg-secondary: #1a1928;
-  --card-bg: #232136;
-  --text-primary: #fffffe;
-  --text-secondary: #b8b5ff;
-  --text-muted: #94a1b2;
-  --success-color: #48bb78;
-  --warning-color: #f6ad55;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  --snmp-color: #3b82f6;
+  --arp-color: #10b981;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --card-bg: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #3b82f6;
+  --text-muted: #cbd5e1;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
   --border-radius: 16px;
   --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -295,7 +291,7 @@ export default {
 }
 
 .header-subtitle {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(241, 245, 249, 0.9);
   font-size: 0.95rem;
   margin: 0;
 }
@@ -308,7 +304,7 @@ export default {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(241, 245, 249, 0.15);
   backdrop-filter: blur(10px);
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -324,7 +320,7 @@ export default {
 
 .stat-label {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(241, 245, 249, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 0.25rem;
@@ -360,8 +356,8 @@ export default {
 }
 
 .filter-tab:hover {
-  background: rgba(184, 181, 255, 0.1);
-  border-color: rgba(184, 181, 255, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
 }
 
 .filter-tab.active {
@@ -370,15 +366,11 @@ export default {
   border-color: transparent;
 }
 
-.tab-icon {
-  font-size: 1.1rem;
-}
-
 .tab-count {
   display: inline-block;
   margin-left: 0.25rem;
   padding: 0.125rem 0.5rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(241, 245, 249, 0.25);
   border-radius: 10px;
   font-size: 0.875rem;
 }
@@ -389,6 +381,7 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
+  align-items: start;
 }
 
 @media (max-width: 900px) {
@@ -405,7 +398,7 @@ export default {
 
 /* ===== DEVICE CARD ===== */
 .device-card {
-  background: var(--card-bg);
+  background: linear-gradient(135deg, #1e293b 0%, #172943 100%);
   border-radius: var(--border-radius);
   padding: 1.5rem;
   box-shadow: var(--card-shadow);
@@ -447,7 +440,7 @@ export default {
   align-items: flex-start;
   margin-bottom: 1.25rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(184, 181, 255, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .card-title-section {
@@ -472,7 +465,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -495,13 +488,15 @@ export default {
 }
 
 .status-badge.online {
-  background: rgba(72, 187, 120, 0.2);
+  background: rgba(16, 185, 129, 0.2);
   color: var(--success-color);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .status-badge.active {
-  background: rgba(246, 173, 85, 0.2);
+  background: rgba(16, 185, 129, 0.2);
   color: var(--warning-color);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .status-dot {
@@ -545,7 +540,7 @@ export default {
 
 .info-value {
   color: var(--text-primary);
-  font-weight: 400;
+  font-weight: 500;
   word-break: break-word;
   flex: 1;
 }
@@ -553,10 +548,12 @@ export default {
 .info-value.mac-address {
   font-family: 'Courier New', monospace;
   font-size: 0.85rem;
-  background: rgba(184, 181, 255, 0.1);
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--text-primary);
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
   letter-spacing: 0.5px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .info-value.system-desc {
@@ -573,7 +570,7 @@ export default {
 .card-footer {
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(184, 181, 255, 0.1);
+  border-top: 1px solid rgba(59, 130, 246, 0.3);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -589,13 +586,15 @@ export default {
   border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
-  background: rgba(102, 126, 234, 0.2);
+  background: rgba(59, 130, 246, 0.2);
   color: var(--snmp-color);
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .arp-card .device-type-badge {
-  background: rgba(72, 187, 120, 0.2);
+  background: rgb(255 255 255 / 20%);
   color: var(--arp-color);
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .badge-icon {
@@ -613,7 +612,7 @@ export default {
   align-items: center;
   gap: 0.25rem;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -642,7 +641,7 @@ export default {
 
 .empty-state.initial {
   background: var(--card-bg);
-  border: 2px dashed rgba(184, 181, 255, 0.3);
+  border: 2px dashed rgba(59, 130, 246, 0.4);
 }
 
 .empty-icon {
@@ -660,22 +659,6 @@ export default {
 .empty-text {
   color: var(--text-muted);
   font-size: 0.95rem;
-}
-
-/* ===== ANIMATIONS ===== */
-.card-animation-enter-active,
-.card-animation-leave-active {
-  transition: all 0.3s ease;
-}
-
-.card-animation-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.card-animation-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS ===== */

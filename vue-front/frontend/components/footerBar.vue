@@ -4,16 +4,14 @@
       <div class="footer-glow"></div>
       <div class="footer-content">
         <div class="footer-main">
-          <h3 class="footer-title">
-            Network Discovery Excellence
-          </h3>
+          <h3 class="footer-title">Network Discovery Excellence</h3>
           <p class="footer-subtitle">
             Discover and analyze network devices using SNMP and ARP protocols
           </p>
         </div>
-        
+
         <div class="footer-divider"></div>
-        
+
         <div class="footer-credits">
           <div class="credits-content">
             <span class="copyright">© 2025 Network Discovery Tool</span>
@@ -31,10 +29,13 @@
             </div>
           </div>
         </div>
-        
+
         <div class="footer-wave">
           <svg viewBox="0 0 1200 120" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 V120 H0 V60 Z" fill="rgba(242, 211, 152, 0.15)"/>
+            <path
+              d="M0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 V120 H0 V60 Z"
+              fill="rgba(242, 211, 152, 0.15)"
+            />
           </svg>
         </div>
       </div>
@@ -44,7 +45,7 @@
 
 <script>
 export default {
-  name: 'FooterBar'
+  name: 'FooterBar',
 }
 </script>
 
@@ -59,11 +60,11 @@ export default {
   position: relative;
   text-align: center;
   color: #3a3a3a;
-  background: linear-gradient(135deg, #ACBED8, #E8EBF7);
+  background: linear-gradient(135deg, #acbed8, #adb3cc);
   border-radius: 20px;
   padding: 40px 30px 20px;
   border: 1px solid rgba(172, 190, 216, 0.5);
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(172, 190, 216, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   overflow: hidden;
@@ -116,7 +117,7 @@ export default {
 
 .footer-credits {
   display: flex;
-  justify-content:center;
+  justify-content: center;
   align-items: center;
   flex-wrap: wrap;
   gap: 20px;
@@ -198,11 +199,10 @@ export default {
 }
 
 .tech-icon.js {
-  background: rgba(255, 223, 93, 0.3); 
-  color: #d4af37; 
+  background: rgba(255, 223, 93, 0.3);
+  color: #d4af37;
   border-color: rgba(212, 175, 55, 0.4);
 }
-
 
 .footer-wave {
   position: absolute;
@@ -233,7 +233,8 @@ export default {
 }
 
 @keyframes wave-flow {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   50% {
@@ -245,26 +246,26 @@ export default {
   .container {
     padding: 30px 15px 15px;
   }
-  
+
   .modern-footer {
     padding: 30px 20px 15px;
   }
-  
+
   .footer-credits {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-  
+
   .credits-content,
   .footer-tech {
     text-align: center;
   }
-  
+
   .footer-title {
     font-size: 1.1rem;
   }
-  
+
   .authors {
     justify-content: center;
     flex-wrap: wrap;
@@ -275,16 +276,16 @@ export default {
   .modern-footer {
     padding: 25px 15px 10px;
   }
-  
+
   .footer-title {
     font-size: 1rem;
   }
-  
+
   .footer-subtitle {
     font-size: 0.9rem;
     padding: 0 10px;
   }
-  
+
   .author-names {
     flex-wrap: wrap;
     justify-content: center;
