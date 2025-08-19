@@ -25,7 +25,7 @@ export default {
 
 .card {
   position: relative;
-  background: #3f4a76;
+  background: #131b39;
   border-radius: 20px;
   padding: 40px;
   margin-bottom: 40px;
