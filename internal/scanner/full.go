@@ -8,6 +8,7 @@ import (
 
 	"network-discovery/internal/arp"
 	"network-discovery/internal/models"
+	"network-discovery/internal/ports"
 	"network-discovery/internal/snmp"
 
 	"github.com/sirupsen/logrus"
@@ -16,7 +17,9 @@ import (
 type FullScanner struct {
 	snmpScanner *snmp.Scanner
 	arpScanner  *arp.Scanner
+	portScanner *ports.Scanner
 	logger      *logrus.Logger
+	maxWorkers  int
 }
 
 func NewFullScanner(snmpClient *snmp.Client, maxWorkers int) *FullScanner {
@@ -26,7 +29,9 @@ func NewFullScanner(snmpClient *snmp.Client, maxWorkers int) *FullScanner {
 	return &FullScanner{
 		snmpScanner: snmp.NewScanner(snmpClient, maxWorkers),
 		arpScanner:  arp.NewScanner(maxWorkers),
+		portScanner: ports.NewScanner(maxWorkers),
 		logger:      logger,
+		maxWorkers:  maxWorkers,
 	}
 }
 
@@ -34,7 +39,9 @@ func NewFullScannerWithLogger(snmpClient *snmp.Client, maxWorkers int, logger *l
 	return &FullScanner{
 		snmpScanner: snmp.NewScannerWithLogger(snmpClient, maxWorkers, logger),
 		arpScanner:  arp.NewScannerWithLogger(maxWorkers, logger),
+		portScanner: ports.NewScannerWithLogger(maxWorkers, logger),
 		logger:      logger,
+		maxWorkers:  maxWorkers,
 	}
 }
 
@@ -131,6 +138,9 @@ func (fs *FullScanner) PerformFullScan(networkRange string, communities []string
 	// Merge results
 	mergedDevices := fs.mergeDevices(snmpDevices, arpDevices)
 
+	// Enrich with open ports (best-effort)
+	fs.addOpenPorts(mergedDevices)
+
 	scanDuration := time.Since(start)
 
 	// Count different types of devices
@@ -217,6 +227,67 @@ func (fs *FullScanner) mergeDevices(snmpDevices, arpDevices []*models.Device) []
 	return result
 }
 
+// addOpenPorts enriches devices with open port information using the ports scanner (non-fatal on errors)
+func (fs *FullScanner) addOpenPorts(devices []models.Device) {
+	if len(devices) == 0 || fs.portScanner == nil {
+		return
+	}
+
+	type job struct {
+		idx int
+		ip  string
+	}
+	jobs := make(chan job)
+	results := make(chan struct {
+		idx   int
+		ports []models.PortInfo
+	})
+
+	workerCount := fs.maxWorkers
+	if workerCount <= 0 {
+		workerCount = 10
+	}
+
+	var wg sync.WaitGroup
+	for w := 0; w < workerCount; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				ports, err := fs.portScanner.ScanHost(j.ip)
+				if err != nil {
+					fs.logger.Debugf("Port scan failed for %s: %v", j.ip, err)
+					results <- struct {
+						idx   int
+						ports []models.PortInfo
+					}{idx: j.idx, ports: nil}
+					continue
+				}
+				results <- struct {
+					idx   int
+					ports []models.PortInfo
+				}{idx: j.idx, ports: ports}
+			}
+		}()
+	}
+
+	go func() {
+		for i := range devices {
+			jobs <- job{idx: i, ip: devices[i].IP}
+		}
+		close(jobs)
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect
+	for r := range results {
+		if r.idx >= 0 && r.idx < len(devices) {
+			devices[r.idx].OpenPorts = r.ports
+		}
+	}
+}
+
 // enhanceSNMPDevicesWithMAC attempts to get MAC addresses for SNMP devices
 func (fs *FullScanner) enhanceSNMPDevicesWithMAC(deviceMap map[string]*models.Device) {
 	for ip, device := range deviceMap {
@@ -262,6 +333,9 @@ func (fs *FullScanner) PerformSNMPScan(networkRange string, communities []string
 		topology.Devices[i].ScanMethod = "SNMP"
 	}
 
+	// Enrich with open ports
+	fs.addOpenPorts(topology.Devices)
+
 	topology.ScanMethod = "SNMP"
 	topology.SNMPCount = topology.ReachableCount
 	topology.ARPCount = 0
@@ -284,6 +358,9 @@ func (fs *FullScanner) PerformARPScan(networkRange string) (*models.NetworkTopol
 	for _, device := range devices {
 		deviceSlice = append(deviceSlice, *device)
 	}
+
+	// Enrich with open ports
+	fs.addOpenPorts(deviceSlice)
 
 	scanDuration := time.Since(start)
 

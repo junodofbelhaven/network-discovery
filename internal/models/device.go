@@ -4,21 +4,22 @@ import "time"
 
 // Device represents a network device discovered via SNMP or ARP
 type Device struct {
-	IP           string    `json:"ip"`
-	MACAddress   string    `json:"mac_address,omitempty"` // MAC address from ARP or SNMP
-	Hostname     string    `json:"hostname"`
-	Description  string    `json:"description"`
-	Contact      string    `json:"contact"`
-	Location     string    `json:"location"`
-	Uptime       string    `json:"uptime"`
-	Vendor       string    `json:"vendor"`
-	Model        string    `json:"model"`
-	Version      string    `json:"version"`
-	Community    string    `json:"-"` // SNMP community string (hidden from JSON)
-	LastSeen     time.Time `json:"last_seen"`
-	IsReachable  bool      `json:"is_reachable"`
-	ResponseTime int64     `json:"response_time_ms"`
-	ScanMethod   string    `json:"scan_method"` // "SNMP", "ARP", or "COMBINED"
+	IP           string     `json:"ip"`
+	MACAddress   string     `json:"mac_address,omitempty"` // MAC address from ARP or SNMP
+	Hostname     string     `json:"hostname"`
+	Description  string     `json:"description"`
+	Contact      string     `json:"contact"`
+	Location     string     `json:"location"`
+	Uptime       string     `json:"uptime"`
+	Vendor       string     `json:"vendor"`
+	Model        string     `json:"model"`
+	Version      string     `json:"version"`
+	Community    string     `json:"-"` // SNMP community string (hidden from JSON)
+	LastSeen     time.Time  `json:"last_seen"`
+	IsReachable  bool       `json:"is_reachable"`
+	ResponseTime int64      `json:"response_time_ms"`
+	ScanMethod   string     `json:"scan_method"` // "SNMP", "ARP", or "COMBINED"
+	OpenPorts    []PortInfo `json:"open_ports,omitempty"`
 }
 
 // NetworkTopology represents the overall network topology
@@ -57,4 +58,12 @@ type ScanInfo struct {
 	Timeout         int      `json:"timeout"`
 	Retries         int      `json:"retries"`
 	WorkerCount     int      `json:"worker_count"`
+}
+
+// PortInfo describes an open port discovered via Nmap
+type PortInfo struct {
+	Port     int    `json:"port"`
+	Protocol string `json:"protocol"`
+	Service  string `json:"service,omitempty"`
+	State    string `json:"state"`
 }

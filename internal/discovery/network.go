@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"network-discovery/internal/models"
+	"network-discovery/internal/ports"
 	"network-discovery/internal/scanner"
 	"network-discovery/internal/snmp"
 
@@ -205,6 +206,17 @@ func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*mo
 	device, err := client.QueryDevice(ip, communities)
 	if err != nil {
 		return nil, fmt.Errorf("device discovery failed: %v", err)
+	}
+
+	// Best-effort port scan for the single device
+	_ = scanner.NewFullScannerWithLogger(client, nd.maxWorkers, nd.logger) // ensure consistency
+	portScanner := ports.NewScannerWithLogger(5, nd.logger)
+	if device != nil {
+		if portsInfo, err := portScanner.ScanHost(device.IP); err == nil {
+			device.OpenPorts = portsInfo
+		} else {
+			nd.logger.Debugf("Port scan failed for %s: %v", device.IP, err)
+		}
 	}
 
 	return device, nil

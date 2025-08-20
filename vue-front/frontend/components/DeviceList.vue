@@ -137,6 +137,24 @@
               <span class="info-label">Last Seen:</span>
               <span class="info-value">{{ formatDate(device.last_seen) }}</span>
             </div>
+
+            <!-- Open Ports -->
+            <div class="info-row ports-row">
+              <span class="info-label">Open Ports:</span>
+              <div class="info-value">
+                <div v-if="device.open_ports && device.open_ports.length" class="ports-list">
+                  <span
+                    v-for="p in device.open_ports"
+                    :key="p.port + '/' + p.protocol + (p.service || '')"
+                    class="port-chip"
+                  >
+                    {{ p.port }}/{{ p.protocol }}
+                    <span v-if="p.service" class="service">({{ p.service }})</span>
+                  </span>
+                </div>
+                <span v-else class="no-ports">None</span>
+              </div>
+            </div>
           </div>
 
           <!-- Card Footer with Protocol Type and Response Time -->
@@ -148,6 +166,10 @@
               {{ device.scan_method }} Protocol
             </span>
             <div class="footer-stats">
+              <span v-if="device.open_ports && device.open_ports.length" class="open-ports">
+                <span class="ports-icon">🛡️</span>
+                {{ device.open_ports.length }} ports
+              </span>
               <span v-if="device.response_time_ms" class="response-time">
                 <span class="time-icon">⚡</span>
                 {{ device.response_time_ms }}ms
@@ -566,6 +588,33 @@ export default {
   font-weight: 500;
 }
 
+/* ===== PORTS LIST ===== */
+.ports-row {
+  align-items: center;
+}
+
+.ports-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.port-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #d1fae5;
+  font-size: 0.8rem;
+}
+
+.port-chip .service {
+  color: #a7f3d0;
+}
+
 /* ===== CARD FOOTER ===== */
 .card-footer {
   margin-top: 1.25rem;
@@ -627,6 +676,22 @@ export default {
 
 .time-icon,
 .check-icon {
+  font-size: 0.9rem;
+}
+
+.open-ports {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.ports-icon {
   font-size: 0.9rem;
 }
 
