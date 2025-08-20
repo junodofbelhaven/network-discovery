@@ -66,9 +66,6 @@
           <div class="card-header">
             <div class="card-title-section">
               <div class="card-ip">
-                <span class="protocol-icon">
-                  {{ device.scan_method === 'SNMP' ? '📡' : '🌐' }}
-                </span>
                 {{ device.ip }}
               </div>
               <div v-if="device.hostname" class="card-hostname">
@@ -403,7 +400,7 @@ export default {
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 @media (max-width: 900px) {
@@ -428,6 +425,8 @@ export default {
   position: relative;
   overflow: hidden;
   border-left: 4px solid var(--snmp-color);
+  display: flex;
+  flex-direction: column;
 }
 
 .device-card.arp-card {
@@ -544,6 +543,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
+  flex-grow: 1;
 }
 
 .info-row {

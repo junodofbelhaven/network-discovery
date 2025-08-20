@@ -131,6 +131,27 @@
         <div v-if="showAdvanced" class="advanced-content">
           <div class="settings-grid">
             <div class="form-group-modern">
+              <label class="input-label">
+                <span class="label-icon">🛡️</span>
+                Port Scan
+              </label>
+              <!-- Replaced checkbox with beautiful toggle button -->
+              <div class="toggle-container">
+                <button
+                  type="button"
+                  @click="enablePortScan = !enablePortScan"
+                  :class="['toggle-button', { active: enablePortScan }]"
+                >
+                  <div class="toggle-slider">
+                    <div class="toggle-knob"></div>
+                  </div>
+                  <span class="toggle-label">
+                    {{ enablePortScan ? 'Enabled' : 'Disabled' }}
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div class="form-group-modern">
               <label for="timeout" class="input-label">
                 <span class="label-icon">⏱️</span>
                 Timeout (seconds)
@@ -201,6 +222,7 @@ export default {
       retries: 0,
       devices: [],
       showAdvanced: false,
+      enablePortScan: true,
     }
   },
   methods: {
@@ -219,6 +241,7 @@ export default {
               .filter((c) => c.length > 0),
             timeout: this.timeout,
             retries: this.retries,
+            enable_port_scan: this.enablePortScan,
           }
 
           const res = await fetch('http://localhost:8080/api/v1/network/full-scan', {
@@ -241,7 +264,7 @@ export default {
 
           const url = `http://localhost:8080/api/v1/device/${encodeURIComponent(
             this.targetIp.trim(),
-          )}?${query}`
+          )}?${query}&enable_port_scan=${this.enablePortScan}`
 
           const res = await fetch(url)
           if (!res.ok) throw new Error('Device scan failed')
@@ -524,6 +547,76 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
+}
+
+.toggle-container {
+  margin-top: 0.5rem;
+}
+
+.toggle-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.toggle-button:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.toggle-button.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.toggle-slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.toggle-button.active .toggle-slider {
+  background: #10b981;
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-button.active .toggle-knob {
+  transform: translateX(24px);
+  background: #ffffff;
+}
+
+.toggle-label {
+  color: #cbd5e1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.toggle-button.active .toggle-label {
+  color: #10b981;
 }
 
 /* ===== SCAN BUTTON ===== */

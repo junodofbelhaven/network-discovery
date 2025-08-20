@@ -36,11 +36,12 @@ type NetworkTopology struct {
 
 // ScanRequest represents a network scan request
 type ScanRequest struct {
-	NetworkRange string   `json:"network_range" binding:"required"` // e.g., "192.168.1.0/24"
-	Communities  []string `json:"communities"`                      // SNMP communities to try
-	Timeout      int      `json:"timeout"`                          // Timeout in seconds
-	Retries      int      `json:"retries"`                          // Number of retries
-	ScanType     string   `json:"scan_type"`                        // "snmp", "arp", or "full"
+	NetworkRange   string   `json:"network_range" binding:"required"` // e.g., "192.168.1.0/24"
+	Communities    []string `json:"communities"`                      // SNMP communities to try
+	Timeout        int      `json:"timeout"`                          // Timeout in seconds
+	Retries        int      `json:"retries"`                          // Number of retries
+	ScanType       string   `json:"scan_type"`                        // "snmp", "arp", or "full"
+	EnablePortScan *bool    `json:"enable_port_scan"`                 // Optional: enable/disable port scanning
 }
 
 // FullScanResult represents the result of a full scan (SNMP + ARP)

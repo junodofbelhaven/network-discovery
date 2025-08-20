@@ -84,7 +84,7 @@ func (c *Client) QueryDevice(ip string, communities []string) (*models.Device, e
 	}
 
 	device.ResponseTime = time.Since(start).Milliseconds()
-	c.logger.Warnf("Failed to query device %s with any community", ip)
+	c.logger.Debugf("Failed to query device %s with any community", ip)
 	return device, fmt.Errorf("failed to query device %s with any community", ip)
 }
 

@@ -117,6 +117,13 @@ func (nd *NetworkDiscovery) PerformFullScan(req *models.ScanRequest) (*models.Fu
 	var topology *models.NetworkTopology
 	var err error
 
+	// Configure port scan toggle (default true)
+	enablePortScan := true
+	if req.EnablePortScan != nil {
+		enablePortScan = *req.EnablePortScan
+	}
+	nd.fullScanner.SetPortScanEnabled(enablePortScan)
+
 	switch req.ScanType {
 	case "snmp":
 		topology, err = nd.fullScanner.PerformSNMPScan(req.NetworkRange, communities)
@@ -182,6 +189,13 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 		nd.fullScanner = scanner.NewFullScannerWithLogger(client, nd.maxWorkers, nd.logger)
 	}
 
+	// Configure port scan toggle (default true)
+	enablePortScan := true
+	if req.EnablePortScan != nil {
+		enablePortScan = *req.EnablePortScan
+	}
+	nd.fullScanner.SetPortScanEnabled(enablePortScan)
+
 	// Perform SNMP-only scan
 	topology, err := nd.fullScanner.PerformSNMPScan(req.NetworkRange, communities)
 	if err != nil {
@@ -194,7 +208,7 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 	return topology, nil
 }
 
-func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*models.Device, error) {
+func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string, enablePortScan bool) (*models.Device, error) {
 	nd.logger.Infof("Discovering single device: %s", ip)
 
 	if len(communities) == 0 {

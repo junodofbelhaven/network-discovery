@@ -15,11 +15,13 @@ import (
 )
 
 type FullScanner struct {
-	snmpScanner *snmp.Scanner
-	arpScanner  *arp.Scanner
-	portScanner *ports.Scanner
-	logger      *logrus.Logger
-	maxWorkers  int
+	snmpScanner    *snmp.Scanner
+	arpScanner     *arp.Scanner
+	portScanner    *ports.Scanner
+	vendorMgr      *arp.VendorManager
+	logger         *logrus.Logger
+	maxWorkers     int
+	enablePortScan bool
 }
 
 func NewFullScanner(snmpClient *snmp.Client, maxWorkers int) *FullScanner {
@@ -27,22 +29,31 @@ func NewFullScanner(snmpClient *snmp.Client, maxWorkers int) *FullScanner {
 	logger.SetLevel(logrus.InfoLevel)
 
 	return &FullScanner{
-		snmpScanner: snmp.NewScanner(snmpClient, maxWorkers),
-		arpScanner:  arp.NewScanner(maxWorkers),
-		portScanner: ports.NewScanner(maxWorkers),
-		logger:      logger,
-		maxWorkers:  maxWorkers,
+		snmpScanner:    snmp.NewScanner(snmpClient, maxWorkers),
+		arpScanner:     arp.NewScanner(maxWorkers),
+		portScanner:    ports.NewScanner(maxWorkers),
+		vendorMgr:      arp.NewVendorManager("", logger),
+		logger:         logger,
+		maxWorkers:     maxWorkers,
+		enablePortScan: true,
 	}
 }
 
 func NewFullScannerWithLogger(snmpClient *snmp.Client, maxWorkers int, logger *logrus.Logger) *FullScanner {
 	return &FullScanner{
-		snmpScanner: snmp.NewScannerWithLogger(snmpClient, maxWorkers, logger),
-		arpScanner:  arp.NewScannerWithLogger(maxWorkers, logger),
-		portScanner: ports.NewScannerWithLogger(maxWorkers, logger),
-		logger:      logger,
-		maxWorkers:  maxWorkers,
+		snmpScanner:    snmp.NewScannerWithLogger(snmpClient, maxWorkers, logger),
+		arpScanner:     arp.NewScannerWithLogger(maxWorkers, logger),
+		portScanner:    ports.NewScannerWithLogger(maxWorkers, logger),
+		vendorMgr:      arp.NewVendorManager("", logger),
+		logger:         logger,
+		maxWorkers:     maxWorkers,
+		enablePortScan: true,
 	}
+}
+
+// SetPortScanEnabled enables/disables port scanning enrichment
+func (fs *FullScanner) SetPortScanEnabled(enabled bool) {
+	fs.enablePortScan = enabled
 }
 
 // PerformFullScan performs both SNMP and ARP scans and merges the results
@@ -140,6 +151,8 @@ func (fs *FullScanner) PerformFullScan(networkRange string, communities []string
 
 	// Enrich with open ports (best-effort)
 	fs.addOpenPorts(mergedDevices)
+	// Enrich vendors based on MAC
+	fs.addVendors(mergedDevices)
 
 	scanDuration := time.Since(start)
 
@@ -229,7 +242,7 @@ func (fs *FullScanner) mergeDevices(snmpDevices, arpDevices []*models.Device) []
 
 // addOpenPorts enriches devices with open port information using the ports scanner (non-fatal on errors)
 func (fs *FullScanner) addOpenPorts(devices []models.Device) {
-	if len(devices) == 0 || fs.portScanner == nil {
+	if !fs.enablePortScan || len(devices) == 0 || fs.portScanner == nil {
 		return
 	}
 
@@ -288,6 +301,21 @@ func (fs *FullScanner) addOpenPorts(devices []models.Device) {
 	}
 }
 
+// addVendors fills vendor using MAC OUI for devices missing vendor information
+func (fs *FullScanner) addVendors(devices []models.Device) {
+	if fs.vendorMgr == nil || len(devices) == 0 {
+		return
+	}
+	for i := range devices {
+		if devices[i].MACAddress != "" && (devices[i].Vendor == "" || devices[i].Vendor == "Unknown") {
+			v := fs.vendorMgr.GetVendor(devices[i].MACAddress)
+			if v != "" && v != "Unknown" {
+				devices[i].Vendor = v
+			}
+		}
+	}
+}
+
 // enhanceSNMPDevicesWithMAC attempts to get MAC addresses for SNMP devices
 func (fs *FullScanner) enhanceSNMPDevicesWithMAC(deviceMap map[string]*models.Device) {
 	for ip, device := range deviceMap {
@@ -335,6 +363,8 @@ func (fs *FullScanner) PerformSNMPScan(networkRange string, communities []string
 
 	// Enrich with open ports
 	fs.addOpenPorts(topology.Devices)
+	// Enrich vendors if MACs are available
+	fs.addVendors(topology.Devices)
 
 	topology.ScanMethod = "SNMP"
 	topology.SNMPCount = topology.ReachableCount
@@ -361,6 +391,8 @@ func (fs *FullScanner) PerformARPScan(networkRange string) (*models.NetworkTopol
 
 	// Enrich with open ports
 	fs.addOpenPorts(deviceSlice)
+	// Ensure vendors are filled based on MAC
+	fs.addVendors(deviceSlice)
 
 	scanDuration := time.Since(start)
 
