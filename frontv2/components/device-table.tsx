@@ -1,54 +1,93 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { Device } from "@/app/page"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Filter, Wifi, WifiOff } from "lucide-react"
+import { useState } from "react";
+import type { Device } from "@/app/page";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Filter, Wifi, WifiOff } from "lucide-react";
 
 interface DeviceTableProps {
-  devices: Device[]
+  devices: Device[];
 }
 
 export function DeviceTable({ devices }: DeviceTableProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [vendorFilter, setVendorFilter] = useState("all")
-  const [methodFilter, setMethodFilter] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const [methodFilter, setMethodFilter] = useState("all");
+  const [portFilter, setPortFilter] = useState("all");
 
-  const uniqueVendors = Array.from(new Set(devices.map((d) => d.vendor))).filter(Boolean)
-  const uniqueMethods = Array.from(new Set(devices.map((d) => d.scan_method))).filter(Boolean)
+  const uniqueVendors = Array.from(
+    new Set(devices.map((d) => d.vendor))
+  ).filter(Boolean);
+  const uniqueMethods = Array.from(
+    new Set(devices.map((d) => d.scan_method))
+  ).filter(Boolean);
+  const uniquePorts = Array.from(
+    new Set(
+      devices.flatMap(
+        (device) =>
+          device.open_ports?.map((port) => `${port.port}/${port.protocol}`) ||
+          []
+      )
+    )
+  ).sort((a, b) => {
+    const portA = Number.parseInt(a.split("/")[0]);
+    const portB = Number.parseInt(b.split("/")[0]);
+    return portA - portB;
+  });
 
   const filteredDevices = devices.filter((device) => {
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === "" ||
       device.ip?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
+      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesVendor = vendorFilter === "all" || device.vendor === vendorFilter
-    const matchesMethod = methodFilter === "all" || device.scan_method === methodFilter
+    const matchesVendor =
+      vendorFilter === "all" || device.vendor === vendorFilter;
+    const matchesMethod =
+      methodFilter === "all" || device.scan_method === methodFilter;
+    const matchesPort =
+      portFilter === "all" ||
+      device.open_ports?.some(
+        (port) => `${port.port}/${port.protocol}` === portFilter
+      );
 
-    return matchesSearch && matchesVendor && matchesMethod
-  })
+    return matchesSearch && matchesVendor && matchesMethod && matchesPort;
+  });
 
   const getStatusBadge = (device: Device) => {
     if (!device.is_reachable) {
-      return <Badge variant="destructive">Unreachable</Badge>
+      return <Badge variant="destructive">Unreachable</Badge>;
     }
 
     switch (device.scan_method) {
       case "SNMP":
-        return <Badge variant="default">SNMP</Badge>
+        return <Badge variant="default">SNMP</Badge>;
       case "ARP":
-        return <Badge variant="secondary">ARP Only</Badge>
+        return <Badge variant="secondary">ARP Only</Badge>;
       case "COMBINED":
-        return <Badge variant="outline">Combined</Badge>
+        return <Badge variant="outline">Combined</Badge>;
       default:
-        return <Badge variant="outline">{device.scan_method}</Badge>
+        return <Badge variant="outline">{device.scan_method}</Badge>;
     }
-  }
+  };
 
   return (
     <Card>
@@ -93,6 +132,19 @@ export function DeviceTable({ devices }: DeviceTableProps) {
               ))}
             </SelectContent>
           </Select>
+          <Select value={portFilter} onValueChange={setPortFilter}>
+            <SelectTrigger className="w-full sm:w-56 h-12 bg-input/50 border-border/50">
+              <SelectValue placeholder="Filter by port" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Ports</SelectItem>
+              {uniquePorts.map((port) => (
+                <SelectItem key={port} value={port}>
+                  Port {port}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       <CardContent>
@@ -125,14 +177,20 @@ export function DeviceTable({ devices }: DeviceTableProps) {
                   </TableCell>
                   <TableCell className="font-mono">{device.ip}</TableCell>
                   <TableCell>{device.hostname || "-"}</TableCell>
-                  <TableCell className="font-mono text-sm">{device.mac_address || "-"}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {device.mac_address || "-"}
+                  </TableCell>
                   <TableCell>{device.vendor || "Unknown"}</TableCell>
                   <TableCell>{device.response_time_ms}ms</TableCell>
                   <TableCell>
                     {device.open_ports && device.open_ports.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {device.open_ports.slice(0, 3).map((port) => (
-                          <Badge key={port.port} variant="outline" className="text-xs">
+                          <Badge
+                            key={port.port}
+                            variant="outline"
+                            className="text-xs"
+                          >
                             {port.port}/{port.protocol}
                           </Badge>
                         ))}
@@ -153,9 +211,11 @@ export function DeviceTable({ devices }: DeviceTableProps) {
           </Table>
         </div>
         {filteredDevices.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">No devices found matching your criteria</div>
+          <div className="text-center py-8 text-muted-foreground">
+            No devices found matching your criteria
+          </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

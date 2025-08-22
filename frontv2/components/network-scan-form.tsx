@@ -1,70 +1,93 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, Play, Settings, Target } from "lucide-react"
-import type { ScanResult } from "@/app/page"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Play, Settings, Target } from "lucide-react";
+import type { ScanResult } from "@/app/page";
 
 interface NetworkScanFormProps {
-  onScanStart: () => void
-  onScanComplete: (result: ScanResult) => void
-  onScanError: (error: string) => void
-  isScanning: boolean
+  onScanStart: () => void;
+  onScanComplete: (result: ScanResult) => void;
+  onScanError: (error: string) => void;
+  isScanning: boolean;
 }
 
-export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isScanning }: NetworkScanFormProps) {
-  const [networkRange, setNetworkRange] = useState("192.168.1.0/24")
-  const [singleIP, setSingleIP] = useState("192.168.1.1")
-  const [communities, setCommunities] = useState("public,private")
-  const [timeout, setTimeout] = useState([2])
-  const [retries, setRetries] = useState([1])
-  const [scanType, setScanType] = useState("full")
-  const [enablePortScan, setEnablePortScan] = useState(true)
-  const [scanMode, setScanMode] = useState<"network" | "single">("network")
+export function NetworkScanForm({
+  onScanStart,
+  onScanComplete,
+  onScanError,
+  isScanning,
+}: NetworkScanFormProps) {
+  const [networkRange, setNetworkRange] = useState("192.168.1.0/24");
+  const [singleIP, setSingleIP] = useState("192.168.1.1");
+  const [communities, setCommunities] = useState("public,private");
+  const [timeout, setTimeout] = useState([2]);
+  const [retries, setRetries] = useState([1]);
+  const [scanType, setScanType] = useState("full");
+  const [enablePortScan, setEnablePortScan] = useState(true);
+  const [scanMode, setScanMode] = useState<"network" | "single">("network");
 
   const performNetworkScan = async (scanData: any) => {
     try {
-      const response = await fetch("http://localhost:8080/api/v1/network/full-scan", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(scanData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result = await response.json()
-      return result
-    } catch (error) {
-      console.error("Scan failed:", error)
-      throw error
-    }
-  }
-
-  const performSingleDeviceScan = async (ip: string, communities: string[], enablePortScan: boolean) => {
-    try {
-      const communityParams = communities.map((c) => `community=${c}`).join("&")
       const response = await fetch(
-        `http://localhost:8080/api/v1/device/${ip}?${communityParams}&enable_port_scan=${enablePortScan}`,
-      )
+        "http://localhost:8080/api/v1/network/full-scan",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(scanData),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const deviceResult = await response.json()
-      console.log("Device result keys:", Object.keys(deviceResult))
-      console.log("Device result structure:", JSON.stringify(deviceResult, null, 2))
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Scan failed:", error);
+      throw error;
+    }
+  };
+
+  const performSingleDeviceScan = async (
+    ip: string,
+    communities: string[],
+    enablePortScan: boolean
+  ) => {
+    try {
+      const communityParams = communities
+        .map((c) => `community=${c}`)
+        .join("&");
+      const response = await fetch(
+        `http://localhost:8080/api/v1/device/${ip}?${communityParams}&enable_port_scan=${enablePortScan}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const deviceResult = await response.json();
+      console.log("Device result keys:", Object.keys(deviceResult));
+      console.log(
+        "Device result structure:",
+        JSON.stringify(deviceResult, null, 2)
+      );
 
       // Transform single device result to match ScanResult format
       const result: ScanResult = {
@@ -80,11 +103,15 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
         statistics: {
           total_devices: 1,
           reachable_devices: deviceResult.device.is_reachable ? 1 : 0,
-          snmp_devices: deviceResult.device.scan_method?.includes("SNMP") ? 1 : 0,
+          snmp_devices: deviceResult.device.scan_method?.includes("SNMP")
+            ? 1
+            : 0,
           arp_only_devices: deviceResult.device.scan_method === "ARP" ? 1 : 0,
           devices_with_mac: deviceResult.device.mac_address ? 1 : 0,
           vendor_distribution: { [deviceResult.device.vendor || "Unknown"]: 1 },
-          scan_method_distribution: { [deviceResult.device.scan_method || "Unknown"]: 1 },
+          scan_method_distribution: {
+            [deviceResult.device.scan_method || "Unknown"]: 1,
+          },
           avg_response_time_ms: deviceResult.device.response_time_ms || 0,
         },
         scan_info: {
@@ -95,38 +122,42 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
           retries: retries[0],
           worker_count: 1,
         },
-      }
+      };
 
-      return result
+      return result;
     } catch (error) {
-      console.error("Single device scan failed:", error)
-      throw error
+      console.error("Single device scan failed:", error);
+      throw error;
     }
-  }
+  };
 
   const handleScan = async () => {
     if (scanMode === "network" && !networkRange.trim()) {
-      onScanError("Network range is required")
-      return
+      onScanError("Network range is required");
+      return;
     }
 
     if (scanMode === "single" && !singleIP.trim()) {
-      onScanError("IP address is required")
-      return
+      onScanError("IP address is required");
+      return;
     }
 
     const communityList = communities
       .split(",")
       .map((c) => c.trim())
-      .filter((c) => c)
+      .filter((c) => c);
 
-    onScanStart()
+    onScanStart();
 
     try {
-      let result: ScanResult
+      let result: ScanResult;
 
       if (scanMode === "single") {
-        result = await performSingleDeviceScan(singleIP.trim(), communityList, enablePortScan)
+        result = await performSingleDeviceScan(
+          singleIP.trim(),
+          communityList,
+          enablePortScan
+        );
       } else {
         const scanData = {
           network_range: networkRange.trim(),
@@ -135,16 +166,16 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
           retries: retries[0],
           scan_type: scanType,
           enable_port_scan: enablePortScan,
-        }
-        result = await performNetworkScan(scanData)
+        };
+        result = await performNetworkScan(scanData);
       }
 
-      console.log("Final single device scan result:", result)
-      onScanComplete(result)
+      console.log("Final single device scan result:", result);
+      onScanComplete(result);
     } catch (error) {
-      onScanError(error instanceof Error ? error.message : "Scan failed")
+      onScanError(error instanceof Error ? error.message : "Scan failed");
     }
-  }
+  };
 
   return (
     <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
@@ -155,7 +186,13 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Tabs value={scanMode} onValueChange={(value: string) => setScanMode(value as "network" | "single")} className="w-full">
+        <Tabs
+          value={scanMode}
+          onValueChange={(value: string) =>
+            setScanMode(value as "network" | "single")
+          }
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
             <TabsTrigger
               value="network"
@@ -190,27 +227,16 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
                 />
               </div>
 
-              {/* SNMP Communities */}
-              <div className="space-y-2">
-                <Label htmlFor="communities" className="text-foreground">
-                  SNMP Communities
-                </Label>
-                <Input
-                  id="communities"
-                  placeholder="public,private"
-                  value={communities}
-                  onChange={(e) => setCommunities(e.target.value)}
-                  disabled={isScanning}
-                  className="bg-input/50 border-border/50"
-                />
-              </div>
-
               {/* Scan Type */}
               <div className="space-y-2">
                 <Label htmlFor="scan-type" className="text-foreground">
                   Scan Type
                 </Label>
-                <Select value={scanType} onValueChange={setScanType} disabled={isScanning}>
+                <Select
+                  value={scanType}
+                  onValueChange={setScanType}
+                  disabled={isScanning}
+                >
                   <SelectTrigger className="bg-input/50 border-border/50">
                     <SelectValue />
                   </SelectTrigger>
@@ -221,6 +247,23 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* SNMP Communities */}
+              {scanType !== "arp" && (
+                <div className="space-y-2">
+                  <Label htmlFor="communities" className="text-foreground">
+                    SNMP Communities
+                  </Label>
+                  <Input
+                    id="communities"
+                    placeholder="public,private"
+                    value={communities}
+                    onChange={(e) => setCommunities(e.target.value)}
+                    disabled={isScanning}
+                    className="bg-input/50 border-border/50"
+                  />
+                </div>
+              )}
 
               {/* Port Scan Toggle */}
               <div className="space-y-2">
@@ -234,7 +277,10 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
                     onCheckedChange={setEnablePortScan}
                     disabled={isScanning}
                   />
-                  <Label htmlFor="port-scan" className="text-sm text-muted-foreground">
+                  <Label
+                    htmlFor="port-scan"
+                    className="text-sm text-muted-foreground"
+                  >
                     {enablePortScan ? "Enabled" : "Disabled"}
                   </Label>
                 </div>
@@ -286,7 +332,10 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
                     onCheckedChange={setEnablePortScan}
                     disabled={isScanning}
                   />
-                  <Label htmlFor="port-scan-single" className="text-sm text-muted-foreground">
+                  <Label
+                    htmlFor="port-scan-single"
+                    className="text-sm text-muted-foreground"
+                  >
                     {enablePortScan ? "Enabled" : "Disabled"}
                   </Label>
                 </div>
@@ -299,7 +348,9 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Timeout Slider */}
             <div className="space-y-3">
-              <Label className="text-foreground">Timeout: {timeout[0]} seconds</Label>
+              <Label className="text-foreground">
+                Timeout: {timeout[0]} seconds
+              </Label>
               <Slider
                 value={timeout}
                 onValueChange={setTimeout}
@@ -337,16 +388,20 @@ export function NetworkScanForm({ onScanStart, onScanComplete, onScanError, isSc
           {isScanning ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {scanMode === "single" ? "Scanning Device..." : "Scanning Network..."}
+              {scanMode === "single"
+                ? "Scanning Device..."
+                : "Scanning Network..."}
             </>
           ) : (
             <>
               <Play className="mr-2 h-4 w-4" />
-              {scanMode === "single" ? "Scan Single Device" : "Start Network Scan"}
+              {scanMode === "single"
+                ? "Scan Single Device"
+                : "Start Network Scan"}
             </>
           )}
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }
