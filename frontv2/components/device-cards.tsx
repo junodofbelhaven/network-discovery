@@ -1,11 +1,17 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { Device } from "@/app/page"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react";
+import type { Device } from "@/app/page";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Search,
   Filter,
@@ -19,50 +25,80 @@ import {
   Server,
   Smartphone,
   Monitor,
-} from "lucide-react"
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 interface DeviceCardsProps {
-  devices: Device[]
+  devices: Device[];
 }
 
 export function DeviceCards({ devices }: DeviceCardsProps) {
-  console.log("First device structure:", devices[0] ? JSON.stringify(devices[0], null, 2) : "No devices")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [vendorFilter, setVendorFilter] = useState("all")
-  const [methodFilter, setMethodFilter] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const [methodFilter, setMethodFilter] = useState("all");
+  const [portFilter, setPortFilter] = useState("all");
+  const [expandedPorts, setExpandedPorts] = useState<Record<string, boolean>>(
+    {}
+  );
 
-  const uniqueVendors = Array.from(new Set(devices.map((d) => d.vendor))).filter(Boolean)
-  const uniqueMethods = Array.from(new Set(devices.map((d) => d.scan_method))).filter(Boolean)
+  const uniqueVendors = Array.from(
+    new Set(devices.map((d) => d.vendor))
+  ).filter(Boolean);
+  const uniqueMethods = Array.from(
+    new Set(devices.map((d) => d.scan_method))
+  ).filter(Boolean);
+  const uniquePorts = Array.from(
+    new Set(
+      devices.flatMap(
+        (device) =>
+          device.open_ports?.map((port) => `${port.port}/${port.protocol}`) ||
+          []
+      )
+    )
+  ).sort((a, b) => {
+    const portA = Number.parseInt(a.split("/")[0]);
+    const portB = Number.parseInt(b.split("/")[0]);
+    return portA - portB;
+  });
 
   const filteredDevices = devices.filter((device) => {
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === "" ||
       device.ip?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
+      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesVendor = vendorFilter === "all" || device.vendor === vendorFilter
-    const matchesMethod = methodFilter === "all" || device.scan_method === methodFilter
+    const matchesVendor =
+      vendorFilter === "all" || device.vendor === vendorFilter;
+    const matchesMethod =
+      methodFilter === "all" || device.scan_method === methodFilter;
+    const matchesPort =
+      portFilter === "all" ||
+      device.open_ports?.some(
+        (port) => `${port.port}/${port.protocol}` === portFilter
+      );
 
-    return matchesSearch && matchesVendor && matchesMethod
-  })
+    return matchesSearch && matchesVendor && matchesMethod && matchesPort;
+  });
 
-  console.log("Filtered devices:", filteredDevices)
+  console.log("Filtered devices:", filteredDevices);
 
   const getStatusColor = (device: Device) => {
     if (!device.is_reachable)
-      return "border-destructive/30 bg-gradient-to-br from-destructive/5 via-card to-destructive/10 hover:shadow-destructive/20"
+      return "border-destructive/30 bg-gradient-to-br from-destructive/5 via-card to-destructive/10 hover:shadow-destructive/20";
 
     switch (device.scan_method) {
       case "SNMP":
-        return "border-chart-3/30 bg-gradient-to-br from-chart-3/5 via-card to-chart-3/10 hover:shadow-chart-3/20"
+        return "border-chart-3/30 bg-gradient-to-br from-chart-3/5 via-card to-chart-3/10 hover:shadow-chart-3/20";
       case "ARP":
-        return "border-chart-2/30 bg-gradient-to-br from-chart-2/5 via-card to-chart-2/10 hover:shadow-chart-2/20"
+        return "border-chart-2/30 bg-gradient-to-br from-chart-2/5 via-card to-chart-2/10 hover:shadow-chart-2/20";
       case "COMBINED":
-        return "border-chart-1/30 bg-gradient-to-br from-chart-1/5 via-card to-chart-1/10 hover:shadow-chart-1/20"
+        return "border-chart-1/30 bg-gradient-to-br from-chart-1/5 via-card to-chart-1/10 hover:shadow-chart-1/20";
       default:
-        return "border-primary/30 bg-gradient-to-br from-primary/5 via-card to-primary/10 hover:shadow-primary/20"
+        return "border-primary/30 bg-gradient-to-br from-primary/5 via-card to-primary/10 hover:shadow-primary/20";
     }
-  }
+  };
 
   const getStatusBadge = (device: Device) => {
     if (!device.is_reachable) {
@@ -70,43 +106,74 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
         <Badge className="bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-lg border-0">
           Offline
         </Badge>
-      )
+      );
     }
 
     switch (device.scan_method) {
       case "SNMP":
-        return <Badge className="bg-chart-3 hover:bg-chart-3/90 text-white shadow-lg border-0">SNMP</Badge>
+        return (
+          <Badge className="bg-chart-3 hover:bg-chart-3/90 text-white shadow-lg border-0">
+            SNMP
+          </Badge>
+        );
       case "ARP":
-        return <Badge className="bg-chart-2 hover:bg-chart-2/90 text-white shadow-lg border-0">ARP</Badge>
+        return (
+          <Badge className="bg-chart-2 hover:bg-chart-2/90 text-white shadow-lg border-0">
+            ARP
+          </Badge>
+        );
       case "COMBINED":
-        return <Badge className="bg-chart-1 hover:bg-chart-1/90 text-white shadow-lg border-0">Full Scan</Badge>
+        return (
+          <Badge className="bg-chart-1 hover:bg-chart-1/90 text-white shadow-lg border-0">
+            Full Scan
+          </Badge>
+        );
       default:
         return (
           <Badge className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg border-0">
             {device.scan_method}
           </Badge>
-        )
+        );
     }
-  }
+  };
 
   const getDeviceIcon = (device: Device) => {
-    const vendor = device.vendor?.toLowerCase() || ""
-    const hostname = device.hostname?.toLowerCase() || ""
+    const vendor = device.vendor?.toLowerCase() || "";
+    const hostname = device.hostname?.toLowerCase() || "";
 
-    if (vendor.includes("cisco") || vendor.includes("router") || hostname.includes("router")) {
-      return <Router className="h-6 w-6 text-primary" />
+    if (
+      vendor.includes("cisco") ||
+      vendor.includes("router") ||
+      hostname.includes("router")
+    ) {
+      return <Router className="h-6 w-6 text-primary" />;
     }
     if (vendor.includes("server") || hostname.includes("server")) {
-      return <Server className="h-6 w-6 text-chart-3" />
+      return <Server className="h-6 w-6 text-chart-3" />;
     }
-    if (vendor.includes("apple") || vendor.includes("samsung") || hostname.includes("phone")) {
-      return <Smartphone className="h-6 w-6 text-chart-2" />
+    if (
+      vendor.includes("apple") ||
+      vendor.includes("samsung") ||
+      hostname.includes("phone")
+    ) {
+      return <Smartphone className="h-6 w-6 text-chart-2" />;
     }
-    if (vendor.includes("dell") || vendor.includes("hp") || hostname.includes("pc")) {
-      return <Monitor className="h-6 w-6 text-chart-1" />
+    if (
+      vendor.includes("dell") ||
+      vendor.includes("hp") ||
+      hostname.includes("pc")
+    ) {
+      return <Monitor className="h-6 w-6 text-chart-1" />;
     }
-    return <Network className="h-6 w-6 text-muted-foreground" />
-  }
+    return <Network className="h-6 w-6 text-muted-foreground" />;
+  };
+
+  const togglePortExpansion = (deviceIp: string) => {
+    setExpandedPorts((prev) => ({
+      ...prev,
+      [deviceIp]: !prev[deviceIp],
+    }));
+  };
 
   return (
     <div className="space-y-8">
@@ -154,6 +221,19 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={portFilter} onValueChange={setPortFilter}>
+              <SelectTrigger className="w-full sm:w-56 h-12 bg-input/50 border-border/50">
+                <SelectValue placeholder="Filter by port" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Ports</SelectItem>
+                {uniquePorts.map((port) => (
+                  <SelectItem key={port} value={port}>
+                    Port {port}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
       </Card>
@@ -193,12 +273,16 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                   {device.is_reachable ? (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-chart-1/20 border border-chart-1/30">
                       <div className="w-3 h-3 bg-chart-1 rounded-full animate-pulse shadow-lg" />
-                      <span className="text-sm font-bold text-chart-1">Online</span>
+                      <span className="text-sm font-bold text-chart-1">
+                        Online
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-destructive/20 border border-destructive/30">
                       <WifiOff className="h-4 w-4 text-destructive" />
-                      <span className="text-sm font-bold text-destructive">Offline</span>
+                      <span className="text-sm font-bold text-destructive">
+                        Offline
+                      </span>
                     </div>
                   )}
                   {getStatusBadge(device)}
@@ -213,8 +297,12 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                     <HardDrive className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Vendor</p>
-                    <p className="text-base font-bold text-card-foreground truncate">{device.vendor || "Unknown"}</p>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">
+                      Vendor
+                    </p>
+                    <p className="text-base font-bold text-card-foreground truncate">
+                      {device.vendor || "Unknown"}
+                    </p>
                   </div>
                 </div>
 
@@ -244,7 +332,9 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                     </p>
                     <p className="text-base font-bold text-card-foreground">
                       {device.response_time_ms}
-                      <span className="text-sm text-muted-foreground ml-1">ms</span>
+                      <span className="text-sm text-muted-foreground ml-1">
+                        ms
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -252,19 +342,42 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
 
               {device.open_ports && device.open_ports.length > 0 && (
                 <div className="space-y-4 p-5 glass-effect rounded-xl border border-border/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-chart-4/10">
-                      <Shield className="h-5 w-5 text-chart-4" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-chart-4/10">
+                        <Shield className="h-5 w-5 text-chart-4" />
+                      </div>
+                      <p className="text-base font-bold text-card-foreground">
+                        Open Ports
+                        <span className="ml-2 px-3 py-1 text-sm bg-chart-4/20 text-chart-4 rounded-full font-mono">
+                          {device.open_ports.length}
+                        </span>
+                      </p>
                     </div>
-                    <p className="text-base font-bold text-card-foreground">
-                      Open Ports
-                      <span className="ml-2 px-3 py-1 text-sm bg-chart-4/20 text-chart-4 rounded-full font-mono">
-                        {device.open_ports.length}
-                      </span>
-                    </p>
+                    {device.open_ports.length > 6 && (
+                      <button
+                        onClick={() => togglePortExpansion(device.ip)}
+                        className="flex items-center gap-1 px-3 py-1 text-sm bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-full transition-all duration-200"
+                      >
+                        {expandedPorts[device.ip] ? (
+                          <>
+                            <ChevronUp className="h-4 w-4" />
+                            Show Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4" />
+                            Show All
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {device.open_ports.slice(0, 6).map((port) => (
+                    {(expandedPorts[device.ip]
+                      ? device.open_ports
+                      : device.open_ports.slice(0, 6)
+                    ).map((port) => (
                       <Badge
                         key={port.port}
                         className="text-sm font-mono bg-muted/30 hover:bg-muted/50 text-card-foreground border border-border/50 shadow-md px-3 py-1"
@@ -272,11 +385,6 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                         {port.port}/{port.protocol}
                       </Badge>
                     ))}
-                    {device.open_ports.length > 6 && (
-                      <Badge className="text-sm bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 px-3 py-1">
-                        +{device.open_ports.length - 6} more
-                      </Badge>
-                    )}
                   </div>
                 </div>
               )}
@@ -288,7 +396,9 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                       <Activity className="h-4 w-4" />
                     </div>
                     <span className="font-semibold">Uptime:</span>
-                    <span className="font-mono font-bold text-card-foreground">{device.uptime}</span>
+                    <span className="font-mono font-bold text-card-foreground">
+                      {device.uptime}
+                    </span>
                   </div>
                 </div>
               )}
@@ -304,12 +414,16 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
               <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
                 <Search className="h-8 w-8 text-primary" />
               </div>
-              <p className="text-xl text-card-foreground font-semibold">No devices found</p>
-              <p className="text-muted-foreground">Try adjusting your search criteria or scan parameters</p>
+              <p className="text-xl text-card-foreground font-semibold">
+                No devices found
+              </p>
+              <p className="text-muted-foreground">
+                Try adjusting your search criteria or scan parameters
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }
