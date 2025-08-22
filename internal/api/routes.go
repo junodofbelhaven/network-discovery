@@ -54,9 +54,6 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 			// Scan by type - allows specifying scan method in URL
 			network.POST("/scan/:type", handlers.ScanNetworkByType)
 
-			// Legacy SNMP-only scan endpoint (for backward compatibility)
-			network.POST("/scan", handlers.ScanNetwork)
-
 			// Utility endpoints
 			network.GET("/quick-scan", handlers.QuickScan)
 			network.GET("/validate", handlers.ValidateNetwork)

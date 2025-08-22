@@ -10,6 +10,7 @@ SNMP ve ARP protokolleri ile ağ topolojisini analiz eden, Go ile yazılmış mo
 - ⚡ **Yüksek Performans**: 50 eşzamanlı worker ile hızlı tarama
 - 🏷️ **Vendor Algılama**: JSON tabanlı OUI veritabanı ile vendor tanıma
 - 📱 **MAC Adresi Çözümleme**: Donanım adresi tanımlama
+- 🔍 **Port Tarama**: Açık portları tespit etme ve görüntüleme
 - ⏱️ **Yanıt Süresi Ölçümü**: Her cihaz için ağ gecikmesini ölçer
 - 🌐 **REST API**: RESTful web servisleri ile kolay entegrasyon
 - 💻 **Web Arayüzü**: Kullanıcı dostu web tabanlı kontrol paneli
