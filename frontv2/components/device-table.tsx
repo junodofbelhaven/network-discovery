@@ -20,17 +20,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Filter, Wifi, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Search,
+  Filter,
+  Wifi,
+  WifiOff,
+  ChevronUp,
+  ChevronDown,
+  Network,
+  ChevronRight,
+  ChevronLeft,
+} from "lucide-react";
+import { match } from "assert";
 
 interface DeviceTableProps {
   devices: Device[];
 }
+
+type SortField = "vendor" | "response_time" | "open_ports" | "hostname";
+type SortDirection = "asc" | "desc";
 
 export function DeviceTable({ devices }: DeviceTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [vendorFilter, setVendorFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
   const [portFilter, setPortFilter] = useState("all");
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [showOpenPortsOnly, setShowOpenPortsOnly] = useState(false);
+  const [expandedPorts, setExpandedPorts] = useState<Set<string>>(new Set());
 
   const uniqueVendors = Array.from(
     new Set(devices.map((d) => d.vendor))
@@ -40,37 +59,104 @@ export function DeviceTable({ devices }: DeviceTableProps) {
   ).filter(Boolean);
   const uniquePorts = Array.from(
     new Set(
-      devices.flatMap(
-        (device) =>
-          device.open_ports?.map((port) => `${port.port}/${port.protocol}`) ||
-          []
-      )
+      devices
+        .flatMap((d) => d.open_ports || [])
+        .map((p) => `${p.port}/${p.protocol}`)
     )
   ).sort((a, b) => {
-    const portA = Number.parseInt(a.split("/")[0]);
-    const portB = Number.parseInt(b.split("/")[0]);
-    return portA - portB;
+    const aPort = Number.parseInt(a.split("/")[0]);
+    const bPort = Number.parseInt(b.split("/")[0]);
+    return aPort - bPort;
   });
 
-  const filteredDevices = devices.filter((device) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      device.ip?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      // Set default sort direction based on field
+      if (field === "open_ports") {
+        setSortDirection("desc"); // Open ports: large to small by default
+      } else {
+        setSortDirection("asc"); // Others: alphabetical/small to large by default
+      }
+    }
+  };
 
-    const matchesVendor =
-      vendorFilter === "all" || device.vendor === vendorFilter;
-    const matchesMethod =
-      methodFilter === "all" || device.scan_method === methodFilter;
-    const matchesPort =
-      portFilter === "all" ||
-      device.open_ports?.some(
-        (port) => `${port.port}/${port.protocol}` === portFilter
+  const togglePortExpansion = (deviceIp: string) => {
+    const newExpanded = new Set(expandedPorts);
+    if (newExpanded.has(deviceIp)) {
+      newExpanded.delete(deviceIp);
+    } else {
+      newExpanded.add(deviceIp);
+    }
+    setExpandedPorts(newExpanded);
+  };
+
+  const filteredAndSortedDevices = devices
+    .filter((device) => {
+      const matchesSearch =
+        device.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        device.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        device.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesVendor =
+        vendorFilter === "all" || device.vendor === vendorFilter;
+      const matchesMethod =
+        methodFilter === "all" || device.scan_method === methodFilter;
+      const matchesPort =
+        portFilter === "all" ||
+        (device.open_ports &&
+          device.open_ports.some(
+            (p) => `${p.port}/${p.protocol}` === portFilter
+          ));
+      const matchesOpenPorts =
+        !showOpenPortsOnly ||
+        (device.open_ports && device.open_ports.length > 0);
+
+      return (
+        matchesSearch &&
+        matchesVendor &&
+        matchesMethod &&
+        matchesOpenPorts &&
+        matchesPort
       );
+    })
+    .sort((a, b) => {
+      if (!sortField) return 0;
 
-    return matchesSearch && matchesVendor && matchesMethod && matchesPort;
-  });
+      let comparison = 0;
+
+      switch (sortField) {
+        case "vendor":
+          comparison = (a.vendor || "Unknown").localeCompare(
+            b.vendor || "Unknown"
+          );
+          break;
+        case "hostname":
+          comparison = (a.hostname || "").localeCompare(b.hostname || "");
+          break;
+        case "response_time":
+          comparison = (a.response_time_ms || 0) - (b.response_time_ms || 0);
+          break;
+        case "open_ports":
+          const aPortCount = a.open_ports ? a.open_ports.length : 0;
+          const bPortCount = b.open_ports ? b.open_ports.length : 0;
+          comparison = aPortCount - bPortCount;
+          break;
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ChevronDown className="h-4 w-4 ml-1" />
+    );
+  };
 
   const getStatusBadge = (device: Device) => {
     if (!device.is_reachable) {
@@ -133,7 +219,7 @@ export function DeviceTable({ devices }: DeviceTableProps) {
             </SelectContent>
           </Select>
           <Select value={portFilter} onValueChange={setPortFilter}>
-            <SelectTrigger className="w-full sm:w-56 h-12 bg-input/50 border-border/50">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="Filter by port" />
             </SelectTrigger>
             <SelectContent>
@@ -145,6 +231,15 @@ export function DeviceTable({ devices }: DeviceTableProps) {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant={showOpenPortsOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowOpenPortsOnly(!showOpenPortsOnly)}
+            className="flex items-center gap-2 whitespace-nowrap"
+          >
+            <Network className="h-4 w-4" />
+            Open Ports Only
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -154,17 +249,49 @@ export function DeviceTable({ devices }: DeviceTableProps) {
               <TableRow>
                 <TableHead>Status</TableHead>
                 <TableHead>IP Address</TableHead>
-                <TableHead>Hostname</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort("hostname")}
+                >
+                  <div className="flex items-center">
+                    Hostname
+                    {getSortIcon("hostname")}
+                  </div>
+                </TableHead>
                 <TableHead>MAC Address</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Response Time</TableHead>
-                <TableHead>Open Ports</TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort("vendor")}
+                >
+                  <div className="flex items-center">
+                    Vendor
+                    {getSortIcon("vendor")}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort("response_time")}
+                >
+                  <div className="flex items-center">
+                    Response Time
+                    {getSortIcon("response_time")}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => handleSort("open_ports")}
+                >
+                  <div className="flex items-center">
+                    Open Ports
+                    {getSortIcon("open_ports")}
+                  </div>
+                </TableHead>
                 <TableHead>Method</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDevices.map((device, index) => (
-                <TableRow key={device.ip || `device-${index}`}>
+              {filteredAndSortedDevices.map((device) => (
+                <TableRow key={device.ip}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {device.is_reachable ? (
@@ -185,7 +312,10 @@ export function DeviceTable({ devices }: DeviceTableProps) {
                   <TableCell>
                     {device.open_ports && device.open_ports.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {device.open_ports.slice(0, 3).map((port) => (
+                        {(expandedPorts.has(device.ip)
+                          ? device.open_ports
+                          : device.open_ports.slice(0, 3)
+                        ).map((port) => (
                           <Badge
                             key={port.port}
                             variant="outline"
@@ -195,9 +325,24 @@ export function DeviceTable({ devices }: DeviceTableProps) {
                           </Badge>
                         ))}
                         {device.open_ports.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{device.open_ports.length - 3}
-                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => togglePortExpansion(device.ip)}
+                          >
+                            {expandedPorts.has(device.ip) ? (
+                              <>
+                                <ChevronLeft className="h-3 w-3 mr-1" />
+                                Show Less
+                              </>
+                            ) : (
+                              <>
+                                <ChevronRight className="h-3 w-3 mr-1" />+
+                                {device.open_ports.length - 3} more
+                              </>
+                            )}
+                          </Button>
                         )}
                       </div>
                     ) : (
@@ -210,7 +355,7 @@ export function DeviceTable({ devices }: DeviceTableProps) {
             </TableBody>
           </Table>
         </div>
-        {filteredDevices.length === 0 && (
+        {filteredAndSortedDevices.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             No devices found matching your criteria
           </div>
