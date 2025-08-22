@@ -22,10 +22,10 @@ export function DeviceTable({ devices }: DeviceTableProps) {
   const uniqueMethods = Array.from(new Set(devices.map((d) => d.scan_method))).filter(Boolean)
 
   const filteredDevices = devices.filter((device) => {
-    const matchesSearch =
-      device.ip.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.hostname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.vendor.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = searchTerm === "" || 
+      device.ip?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device.hostname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      device.vendor?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesVendor = vendorFilter === "all" || device.vendor === vendorFilter
     const matchesMethod = methodFilter === "all" || device.scan_method === methodFilter
@@ -111,8 +111,8 @@ export function DeviceTable({ devices }: DeviceTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDevices.map((device) => (
-                <TableRow key={device.ip}>
+              {filteredDevices.map((device, index) => (
+                <TableRow key={device.ip || `device-${index}`}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {device.is_reachable ? (
