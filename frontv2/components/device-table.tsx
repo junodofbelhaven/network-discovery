@@ -53,10 +53,10 @@ export function DeviceTable({ devices }: DeviceTableProps) {
 
   const uniqueVendors = Array.from(
     new Set(devices.map((d) => d.vendor))
-  ).filter(Boolean);
+  ).filter(Boolean) as string[];
   const uniqueMethods = Array.from(
     new Set(devices.map((d) => d.scan_method))
-  ).filter(Boolean);
+  ).filter(Boolean) as string[];
   const uniquePorts = Array.from(
     new Set(
       devices
