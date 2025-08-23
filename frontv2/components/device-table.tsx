@@ -58,12 +58,15 @@ export function DeviceTable({ devices }: DeviceTableProps) {
     new Set(devices.map((d) => d.scan_method))
   ).filter(Boolean) as string[];
   const uniquePorts = Array.from(
-    new Set(
+    new Map(
       devices
         .flatMap((d) => d.open_ports || [])
-        .map((p) => `${p.port}/${p.protocol}`)
-    )
-  ).sort((a, b) => {
+        .map((p) => [
+          `${p.port}/${p.protocol}`,
+          { port: p.port, protocol: p.protocol, service: p.service }
+        ])
+    ).entries()
+  ).sort(([a], [b]) => {
     const aPort = Number.parseInt(a.split("/")[0]);
     const bPort = Number.parseInt(b.split("/")[0]);
     return aPort - bPort;
@@ -224,9 +227,16 @@ export function DeviceTable({ devices }: DeviceTableProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Ports</SelectItem>
-              {uniquePorts.map((port) => (
-                <SelectItem key={port} value={port}>
-                  Port {port}
+              {uniquePorts.map(([portKey, portInfo]) => (
+                <SelectItem key={portKey} value={portKey}>
+                  <div className="flex flex-col gap-1">
+                    <div className="font-mono font-bold">{portKey}</div>
+                    {portInfo.service && (
+                      <div className="text-xs text-muted-foreground">
+                        {portInfo.service}
+                      </div>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -316,13 +326,19 @@ export function DeviceTable({ devices }: DeviceTableProps) {
                           ? device.open_ports
                           : device.open_ports.slice(0, 3)
                         ).map((port) => (
-                          <Badge
-                            key={port.port}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {port.port}/{port.protocol}
-                          </Badge>
+                          <div key={port.port} className="flex flex-col gap-1">
+                            <Badge
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {port.port}/{port.protocol}
+                            </Badge>
+                            {port.service && (
+                              <div className="text-xs text-muted-foreground bg-primary/10 px-1.5 py-0.5 rounded text-center">
+                                {port.service}
+                              </div>
+                            )}
+                          </div>
                         ))}
                         {device.open_ports.length > 3 && (
                           <Button

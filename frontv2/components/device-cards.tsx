@@ -49,14 +49,16 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
     new Set(devices.map((d) => d.scan_method))
   ).filter(Boolean);
   const uniquePorts = Array.from(
-    new Set(
+    new Map(
       devices.flatMap(
         (device) =>
-          device.open_ports?.map((port) => `${port.port}/${port.protocol}`) ||
-          []
+          device.open_ports?.map((port) => [
+            `${port.port}/${port.protocol}`,
+            { port: port.port, protocol: port.protocol, service: port.service }
+          ]) || []
       )
-    )
-  ).sort((a, b) => {
+    ).entries()
+  ).sort(([a], [b]) => {
     const portA = Number.parseInt(a.split("/")[0]);
     const portB = Number.parseInt(b.split("/")[0]);
     return portA - portB;
@@ -227,9 +229,16 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Ports</SelectItem>
-                {uniquePorts.map((port) => (
-                  <SelectItem key={port} value={port}>
-                    Port {port}
+                {uniquePorts.map(([portKey, portInfo]) => (
+                  <SelectItem key={portKey} value={portKey}>
+                    <div className="flex flex-col gap-1">
+                      <div className="font-mono font-bold">{portKey}</div>
+                      {portInfo.service && (
+                        <div className="text-xs text-muted-foreground">
+                          {portInfo.service}
+                        </div>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -380,9 +389,14 @@ export function DeviceCards({ devices }: DeviceCardsProps) {
                     ).map((port) => (
                       <Badge
                         key={port.port}
-                        className="text-sm font-mono bg-muted/30 hover:bg-muted/50 text-card-foreground border border-border/50 shadow-md px-3 py-1"
+                        className="text-sm font-mono bg-muted/30 hover:bg-muted/50 text-card-foreground border border-border/50 shadow-md px-3 py-1 flex flex-col items-center gap-1"
                       >
-                        {port.port}/{port.protocol}
+                        <div className="font-bold">{port.port}/{port.protocol}</div>
+                        {port.service && (
+                          <div className="text-xs text-muted-foreground bg-primary/20 px-2 py-0.5 rounded-full">
+                            {port.service}
+                          </div>
+                        )}
                       </Badge>
                     ))}
                   </div>
