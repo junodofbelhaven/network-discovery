@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Go
+bin/
+*.test
+coverage.out
+
+# IDE
+.vscode/
+.idea/
+
+# Config / secrets
+.env
+config.yaml
+secrets.json
