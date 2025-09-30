@@ -21,8 +21,8 @@ A modern network discovery tool written in Go that analyzes network topology usi
 ### Prerequisites
 
 - Go 1.23 or higher
-- Docker (optional)
 - Git
+- nmap
 
 ### Installation
 
@@ -40,7 +40,11 @@ go run cmd/main.go
 
 ## Web GUI
 
-## <img width="1755" height="1586" alt="image" src="https://github.com/user-attachments/assets/579b2e48-e90e-4626-8f8d-71ed4cb25da1" />
+## <img width="1755" height="1640" alt="image" src="https://github.com/user-attachments/assets/d677405d-c5a7-4123-ab5a-2fe279879ac8" />
+
+
+
+## <img width="789" height="688" alt="image" src="https://github.com/user-attachments/assets/690256c3-496a-4bce-99b6-ce28d9127c3f" />
 
 
 ## 📖 API Documentation
@@ -304,27 +308,6 @@ network-discovery/
 | `SNMP_TIMEOUT` | SNMP timeout           | `5s`    |
 | `MAX_WORKERS`  | Maximum worker count   | `50`    |
 
-## 📊 Supported Devices
-
-### Vendor Support
-
-- ✅ **Cisco**: IOS, NX-OS, IOS-XE, ASA
-- ✅ **Juniper**: JunOS (SRX, MX, EX, QFX series)
-- ✅ **Huawei**: VRP (S5700, S6700, CloudEngine)
-- ✅ **HP/HPE**: ProCurve, Aruba
-- ✅ **Dell**: PowerConnect, Force10, OS10
-- ✅ **MikroTik**: RouterOS, RouterBoard
-- ✅ **Ubiquiti**: UniFi, EdgeMax
-- ✅ **Fortinet**: FortiGate, FortiOS
-- ✅ **Palo Alto**: PA series
-- ✅ **Netgear**: ProSafe series
-- ✅ **D-Link**: DGS, DES series
-- ✅ **TP-Link**: Managed switches
-- ✅ **Apple**: Mac devices
-- ✅ **Intel**: Network cards
-- ✅ **VMware**: Virtual machines
-- ✅ **Raspberry Pi**: IoT devices
-
 ### SNMP Information
 
 The application uses the following SNMP OIDs:
@@ -415,3 +398,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ##
 
 ⭐ **If you like this project, don't forget to give it a star!**
+
