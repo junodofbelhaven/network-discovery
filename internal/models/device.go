@@ -4,21 +4,22 @@ import "time"
 
 // Device represents a network device discovered via SNMP or ARP
 type Device struct {
-	IP           string    `json:"ip"`
-	MACAddress   string    `json:"mac_address,omitempty"` // MAC address from ARP or SNMP
-	Hostname     string    `json:"hostname"`
-	Description  string    `json:"description"`
-	Contact      string    `json:"contact"`
-	Location     string    `json:"location"`
-	Uptime       string    `json:"uptime"`
-	Vendor       string    `json:"vendor"`
-	Model        string    `json:"model"`
-	Version      string    `json:"version"`
-	Community    string    `json:"-"` // SNMP community string (hidden from JSON)
-	LastSeen     time.Time `json:"last_seen"`
-	IsReachable  bool      `json:"is_reachable"`
-	ResponseTime int64     `json:"response_time_ms"`
-	ScanMethod   string    `json:"scan_method"` // "SNMP", "ARP", or "COMBINED"
+	IP           string     `json:"ip"`
+	MACAddress   string     `json:"mac_address,omitempty"` // MAC address from ARP or SNMP
+	Hostname     string     `json:"hostname"`
+	Description  string     `json:"description"`
+	Contact      string     `json:"contact"`
+	Location     string     `json:"location"`
+	Uptime       string     `json:"uptime"`
+	Vendor       string     `json:"vendor"`
+	Model        string     `json:"model"`
+	Version      string     `json:"version"`
+	Community    string     `json:"-"` // SNMP community string (hidden from JSON)
+	LastSeen     time.Time  `json:"last_seen"`
+	IsReachable  bool       `json:"is_reachable"`
+	ResponseTime int64      `json:"response_time_ms"`
+	ScanMethod   string     `json:"scan_method"` // "SNMP", "ARP", or "COMBINED"
+	OpenPorts    []PortInfo `json:"open_ports,omitempty"`
 }
 
 // NetworkTopology represents the overall network topology
@@ -35,11 +36,12 @@ type NetworkTopology struct {
 
 // ScanRequest represents a network scan request
 type ScanRequest struct {
-	NetworkRange string   `json:"network_range" binding:"required"` // e.g., "192.168.1.0/24"
-	Communities  []string `json:"communities"`                      // SNMP communities to try
-	Timeout      int      `json:"timeout"`                          // Timeout in seconds
-	Retries      int      `json:"retries"`                          // Number of retries
-	ScanType     string   `json:"scan_type"`                        // "snmp", "arp", or "full"
+	NetworkRange   string   `json:"network_range" binding:"required"` // e.g., "192.168.1.0/24"
+	Communities    []string `json:"communities"`                      // SNMP communities to try
+	Timeout        int      `json:"timeout"`                          // Timeout in seconds
+	Retries        int      `json:"retries"`                          // Number of retries
+	ScanType       string   `json:"scan_type"`                        // "snmp", "arp", or "full"
+	EnablePortScan *bool    `json:"enable_port_scan"`                 // Optional: enable/disable port scanning
 }
 
 // FullScanResult represents the result of a full scan (SNMP + ARP)
@@ -57,4 +59,12 @@ type ScanInfo struct {
 	Timeout         int      `json:"timeout"`
 	Retries         int      `json:"retries"`
 	WorkerCount     int      `json:"worker_count"`
+}
+
+// PortInfo describes an open port discovered via Nmap
+type PortInfo struct {
+	Port     int    `json:"port"`
+	Protocol string `json:"protocol"`
+	Service  string `json:"service,omitempty"`
+	State    string `json:"state"`
 }

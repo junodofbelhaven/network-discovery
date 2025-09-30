@@ -54,9 +54,6 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 			// Scan by type - allows specifying scan method in URL
 			network.POST("/scan/:type", handlers.ScanNetworkByType)
 
-			// Legacy SNMP-only scan endpoint (for backward compatibility)
-			network.POST("/scan", handlers.ScanNetwork)
-
 			// Utility endpoints
 			network.GET("/quick-scan", handlers.QuickScan)
 			network.GET("/validate", handlers.ValidateNetwork)
@@ -70,8 +67,8 @@ func SetupRoutes(discovery *discovery.NetworkDiscovery) *gin.Engine {
 	}
 
 	// Serve static files (if needed for frontend)
-	router.Static("/static", "./frontend-build/dist")
-	router.LoadHTMLGlob("./frontend-build/dist/index.html")
+	router.Static("/_next/static", "./frontend-build/out/_next/static")
+	router.LoadHTMLGlob("./frontend-build/out/index.html")
 
 	router.GET("/index", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{

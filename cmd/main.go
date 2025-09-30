@@ -120,7 +120,6 @@ func printStartupInfo(host, port string) {
    • Full Network Scan:  POST /api/v1/network/full-scan
    • SNMP Scan:          POST /api/v1/network/scan/snmp
    • ARP Scan:           POST /api/v1/network/scan/arp
-   • Legacy SNMP Scan:   POST /api/v1/network/scan
    • Quick Scan:         GET  /api/v1/network/quick-scan?network=<CIDR>
    • Validate Range:     GET  /api/v1/network/validate?network=<CIDR>
    • Device Scan:        GET  /api/v1/device/<IP>

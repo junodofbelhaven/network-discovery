@@ -50,9 +50,14 @@ func (h *Handlers) PerformFullScan(c *gin.Context) {
 	if req.ScanType == "" {
 		req.ScanType = "full"
 	}
+	// Default enable_port_scan to true when not provided
+	if req.EnablePortScan == nil {
+		v := true
+		req.EnablePortScan = &v
+	}
 
-	h.logger.Infof("Received full scan request for network: %s (type: %s, timeout: %ds, retries: %d)",
-		req.NetworkRange, req.ScanType, req.Timeout, req.Retries)
+	h.logger.Infof("Received full scan request for network: %s (type: %s, timeout: %ds, retries: %d, port_scan: %t)",
+		req.NetworkRange, req.ScanType, req.Timeout, req.Retries, *req.EnablePortScan)
 
 	// Perform the full discovery
 	result, err := h.discovery.PerformFullScan(&req)
@@ -69,52 +74,6 @@ func (h *Handlers) PerformFullScan(c *gin.Context) {
 		result.Topology.TotalCount, result.Topology.SNMPCount, result.Topology.ARPCount)
 
 	c.JSON(http.StatusOK, result)
-}
-
-// ScanNetwork handles network scanning requests (SNMP only - backward compatibility)
-func (h *Handlers) ScanNetwork(c *gin.Context) {
-	var req models.ScanRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.Errorf("Invalid request: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   "Invalid request format",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	// Set optimized defaults for faster scanning
-	if req.Timeout == 0 {
-		req.Timeout = 2 // Reduced from 5 to 2 seconds
-	}
-	if req.Retries < 0 { // Allow 0 retries
-		req.Retries = 1 // Reduced from 2 to 1
-	}
-
-	h.logger.Infof("Received SNMP scan request for network: %s (timeout: %ds, retries: %d)",
-		req.NetworkRange, req.Timeout, req.Retries)
-
-	// Perform the discovery
-	topology, err := h.discovery.DiscoverNetwork(&req)
-	if err != nil {
-		h.logger.Errorf("Network discovery failed: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   "Network discovery failed",
-			"details": err.Error(),
-		})
-		return
-	}
-
-	// Get statistics
-	stats := h.discovery.GetNetworkStatistics(topology)
-
-	response := gin.H{
-		"topology":   topology,
-		"statistics": stats,
-	}
-
-	c.JSON(http.StatusOK, response)
 }
 
 // ScanNetworkByType handles network scanning requests with specific scan type
@@ -157,8 +116,12 @@ func (h *Handlers) ScanNetworkByType(c *gin.Context) {
 		req.Retries = 1 // Reduced retries
 	}
 
-	h.logger.Infof("Received %s scan request for network: %s (timeout: %ds, retries: %d)",
-		scanType, req.NetworkRange, req.Timeout, req.Retries)
+	if req.EnablePortScan == nil {
+		v := true
+		req.EnablePortScan = &v
+	}
+	h.logger.Infof("Received %s scan request for network: %s (timeout: %ds, retries: %d, port_scan: %t)",
+		scanType, req.NetworkRange, req.Timeout, req.Retries, *req.EnablePortScan)
 
 	// Perform the discovery
 	result, err := h.discovery.PerformFullScan(&req)
@@ -222,7 +185,18 @@ func (h *Handlers) ScanDevice(c *gin.Context) {
 
 	h.logger.Infof("Received device scan request for IP: %s", ip)
 
-	device, err := h.discovery.DiscoverDevice(ip, communities)
+	// Optional enable_port_scan query param (default true)
+	enablePortScan := true
+	if val := c.Query("enable_port_scan"); val != "" {
+		switch val {
+		case "0", "false", "False", "FALSE":
+			enablePortScan = false
+		default:
+			enablePortScan = true
+		}
+	}
+
+	device, err := h.discovery.DiscoverDevice(ip, communities, enablePortScan)
 	if err != nil {
 		h.logger.Errorf("Device discovery failed: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"network-discovery/internal/models"
+	"network-discovery/internal/ports"
 	"network-discovery/internal/scanner"
 	"network-discovery/internal/snmp"
 
@@ -116,6 +117,13 @@ func (nd *NetworkDiscovery) PerformFullScan(req *models.ScanRequest) (*models.Fu
 	var topology *models.NetworkTopology
 	var err error
 
+	// Configure port scan toggle (default true)
+	enablePortScan := true
+	if req.EnablePortScan != nil {
+		enablePortScan = *req.EnablePortScan
+	}
+	nd.fullScanner.SetPortScanEnabled(enablePortScan)
+
 	switch req.ScanType {
 	case "snmp":
 		topology, err = nd.fullScanner.PerformSNMPScan(req.NetworkRange, communities)
@@ -181,6 +189,13 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 		nd.fullScanner = scanner.NewFullScannerWithLogger(client, nd.maxWorkers, nd.logger)
 	}
 
+	// Configure port scan toggle (default true)
+	enablePortScan := true
+	if req.EnablePortScan != nil {
+		enablePortScan = *req.EnablePortScan
+	}
+	nd.fullScanner.SetPortScanEnabled(enablePortScan)
+
 	// Perform SNMP-only scan
 	topology, err := nd.fullScanner.PerformSNMPScan(req.NetworkRange, communities)
 	if err != nil {
@@ -193,7 +208,7 @@ func (nd *NetworkDiscovery) DiscoverNetwork(req *models.ScanRequest) (*models.Ne
 	return topology, nil
 }
 
-func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*models.Device, error) {
+func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string, enablePortScan bool) (*models.Device, error) {
 	nd.logger.Infof("Discovering single device: %s", ip)
 
 	if len(communities) == 0 {
@@ -205,6 +220,17 @@ func (nd *NetworkDiscovery) DiscoverDevice(ip string, communities []string) (*mo
 	device, err := client.QueryDevice(ip, communities)
 	if err != nil {
 		return nil, fmt.Errorf("device discovery failed: %v", err)
+	}
+
+	// Best-effort port scan for the single device
+	_ = scanner.NewFullScannerWithLogger(client, nd.maxWorkers, nd.logger) // ensure consistency
+	portScanner := ports.NewScannerWithLogger(5, nd.logger)
+	if device != nil {
+		if portsInfo, err := portScanner.ScanHost(device.IP); err == nil {
+			device.OpenPorts = portsInfo
+		} else {
+			nd.logger.Debugf("Port scan failed for %s: %v", device.IP, err)
+		}
 	}
 
 	return device, nil

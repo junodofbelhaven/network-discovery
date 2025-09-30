@@ -1,68 +1,73 @@
 # 🌐 Network Discovery Tool
 
-SNMP ve ARP protokolleri ile ağ topolojisini analiz eden, Go ile yazılmış modern bir ağ keşif aracı. Ağınızdaki tüm cihazları otomatik olarak keşfeder ve detaylı bilgilerini toplar.
+A modern network discovery tool written in Go that analyzes network topology using SNMP and ARP protocols. Automatically discovers all devices on your network and collects detailed information.
 
-## ✨ Özellikler
+## ✨ Features
 
-- 🔍 **Full Network Scan**: SNMP + ARP kombinasyonu ile kapsamlı ağ keşfi
-- 📡 **SNMP v2c Desteği**: Detaylı cihaz bilgileri ile SNMP keşfi
-- 🌐 **ARP Tarama**: Tüm IP-etkin cihazları keşfetme
-- ⚡ **Yüksek Performans**: 50 eşzamanlı worker ile hızlı tarama
-- 🏷️ **Vendor Algılama**: JSON tabanlı OUI veritabanı ile vendor tanıma
-- 📱 **MAC Adresi Çözümleme**: Donanım adresi tanımlama
-- ⏱️ **Yanıt Süresi Ölçümü**: Her cihaz için ağ gecikmesini ölçer
-- 🌐 **REST API**: RESTful web servisleri ile kolay entegrasyon
-- 💻 **Web Arayüzü**: Kullanıcı dostu web tabanlı kontrol paneli
-- 📊 **Detaylı Raporlama**: Ağ istatistikleri ve cihaz envanteri
+- 🔍 **Full Network Scan**: Comprehensive network discovery with SNMP + ARP combination
+- 📡 **SNMP v2c Support**: SNMP discovery with detailed device information
+- 🌐 **ARP Scanning**: Discovery of all IP-enabled devices
+- ⚡ **High Performance**: Fast scanning with 50 concurrent workers
+- 🏷️ **Vendor Detection**: Vendor recognition with JSON-based OUI database
+- 📱 **MAC Address Resolution**: Hardware address identification
+- 🔍 **Port Scanning**: Detection and display of open ports
+- ⏱️ **Response Time Measurement**: Measures network latency for each device
+- 🌐 **REST API**: Easy integration with RESTful web services
+- 💻 **Web Interface**: User-friendly web-based control panel
+- 📊 **Detailed Reporting**: Network statistics and device inventory
 
-## 🚀 Hızlı Başlangıç
+## 🚀 Quick Start
 
-### Ön Gereksinimler
+### Prerequisites
 
-- Go 1.23 veya üzeri
-- Docker (opsiyonel)
+- Go 1.23 or higher
 - Git
+- nmap
 
-### Kurulum
+### Installation
 
 ```bash
-# Projeyi klonla
+# Clone the project
 git clone https://github.com/junodofbelhaven/network-discovery.git
 cd network-discovery
 
-# Bağımlılıkları yükle
+# Install dependencies
 go mod tidy
 
-# Uygulamayı çalıştır
+# Run the application
 go run cmd/main.go
 ```
 
 ## Web GUI
 
-## <img width="1755" height="1586" alt="image" src="https://github.com/user-attachments/assets/579b2e48-e90e-4626-8f8d-71ed4cb25da1" />
+## <img width="1755" height="1640" alt="image" src="https://github.com/user-attachments/assets/d677405d-c5a7-4123-ab5a-2fe279879ac8" />
 
 
-## 📖 API Dokümantasyonu
 
-### Temel Endpoints
+## <img width="789" height="688" alt="image" src="https://github.com/user-attachments/assets/690256c3-496a-4bce-99b6-ce28d9127c3f" />
 
-| Method | Endpoint                         | Açıklama                   |
+
+## 📖 API Documentation
+
+### Main Endpoints
+
+| Method | Endpoint                         | Description                |
 | ------ | -------------------------------- | -------------------------- |
-| GET    | `/api/v1/health`                 | Servis durumu kontrolü     |
-| GET    | `/api/v1/version`                | Versiyon bilgisi           |
-| GET    | `/api/v1/scan-methods`           | Tarama yöntemleri bilgisi  |
+| GET    | `/api/v1/health`                 | Service health check       |
+| GET    | `/api/v1/version`                | Version information        |
+| GET    | `/api/v1/scan-methods`           | Scan methods information   |
 | POST   | `/api/v1/network/full-scan`      | Full scan (SNMP + ARP)     |
-| POST   | `/api/v1/network/scan/snmp`      | Sadece SNMP taraması       |
-| POST   | `/api/v1/network/scan/arp`       | Sadece ARP taraması        |
-| POST   | `/api/v1/network/scan/full`      | Full scan (alternatif)     |
-| POST   | `/api/v1/network/scan`           | Legacy SNMP taraması       |
-| GET    | `/api/v1/network/quick-scan`     | Hızlı cihaz keşfi          |
-| GET    | `/api/v1/network/validate`       | Ağ aralığı doğrulama       |
-| GET    | `/api/v1/device/{ip}`            | Tek cihaz taraması         |
-| GET    | `/api/v1/vendor-database`        | Vendor veritabanı bilgisi  |
-| POST   | `/api/v1/vendor-database/reload` | Vendor veritabanı yenileme |
+| POST   | `/api/v1/network/scan/snmp`      | SNMP scan only             |
+| POST   | `/api/v1/network/scan/arp`       | ARP scan only              |
+| POST   | `/api/v1/network/scan/full`      | Full scan (alternative)    |
+| POST   | `/api/v1/network/scan`           | Legacy SNMP scan           |
+| GET    | `/api/v1/network/quick-scan`     | Quick device discovery     |
+| GET    | `/api/v1/network/validate`       | Network range validation   |
+| GET    | `/api/v1/device/{ip}`            | Single device scan         |
+| GET    | `/api/v1/vendor-database`        | Vendor database info       |
+| POST   | `/api/v1/vendor-database/reload` | Reload vendor database     |
 
-### Full Network Scan (Ana Endpoint)
+### Full Network Scan (Main Endpoint)
 
 **POST** `/api/v1/network/full-scan`
 
@@ -76,7 +81,7 @@ go run cmd/main.go
 }
 ```
 
-**Yanıt:**
+**Response:**
 
 ```json
 {
@@ -130,9 +135,9 @@ go run cmd/main.go
 }
 ```
 
-### Tip Özelinde Tarama
+### Type-Specific Scanning
 
-**POST** `/api/v1/network/scan/snmp` (Sadece SNMP)
+**POST** `/api/v1/network/scan/snmp` (SNMP Only)
 
 ```json
 {
@@ -143,7 +148,7 @@ go run cmd/main.go
 }
 ```
 
-**POST** `/api/v1/network/scan/arp` (Sadece ARP)
+**POST** `/api/v1/network/scan/arp` (ARP Only)
 
 ```json
 {
@@ -153,7 +158,7 @@ go run cmd/main.go
 }
 ```
 
-### Hızlı Tarama
+### Quick Scan
 
 **GET** `/api/v1/network/quick-scan?network=192.168.1.0/24&community=public`
 
@@ -164,7 +169,7 @@ go run cmd/main.go
 }
 ```
 
-### Tek Cihaz Taraması
+### Single Device Scan
 
 **GET** `/api/v1/device/192.168.1.1?community=public&community=private`
 
@@ -189,7 +194,7 @@ go run cmd/main.go
 }
 ```
 
-### Tarama Yöntemleri Bilgisi
+### Scan Methods Information
 
 **GET** `/api/v1/scan-methods`
 
@@ -226,7 +231,7 @@ go run cmd/main.go
 }
 ```
 
-### Vendor Veritabanı Yönetimi
+### Vendor Database Management
 
 **GET** `/api/v1/vendor-database`
 
@@ -248,7 +253,7 @@ go run cmd/main.go
 }
 ```
 
-### Ağ Aralığı Doğrulama
+### Network Range Validation
 
 **GET** `/api/v1/network/validate?network=192.168.1.0/24`
 
@@ -259,74 +264,53 @@ go run cmd/main.go
 }
 ```
 
-## 🛠️ Geliştirme
+## 🛠️ Development
 
-### Proje Yapısı
+### Project Structure
 
 ```
 network-discovery/
-├── cmd/                    # Ana uygulama
+├── cmd/                    # Main application
 │   └── main.go
-├── internal/               # İç paketler
-│   ├── api/               # HTTP handlers ve routes
-│   ├── discovery/         # Ağ keşif servisleri
-│   ├── models/            # Veri modelleri
-│   ├── snmp/              # SNMP istemcisi
-│   └── arp/               # ARP tarayıcı ve vendor yönetimi
-├── vue-front/             # Frontend kaynak kodları
-│   └── frontend/          # Vue.js uygulaması
-├── frontend-build/        # Derlenmiş web arayüzü
-│   └── dist/              # Statik dosyalar
-├── configs/               # Konfigürasyon dosyaları
-│   └── oui_vendors.json  # Vendor veritabanı
-├── config.yaml            # Ana konfigürasyon
-├── go.mod                 # Go modül tanımı
-├── go.sum                 # Go bağımlılık sağlama toplamları
-└── README.md             # Dokümantasyon
+├── internal/               # Internal packages
+│   ├── api/               # HTTP handlers and routes
+│   ├── discovery/         # Network discovery services
+│   ├── models/            # Data models
+│   ├── snmp/              # SNMP client
+│   └── arp/               # ARP scanner and vendor management
+├── vue-front/             # Frontend source code
+│   └── frontend/          # Vue.js application
+├── frontend-build/        # Compiled web interface
+│   └── dist/              # Static files
+├── configs/               # Configuration files
+│   └── oui_vendors.json  # Vendor database
+├── config.yaml            # Main configuration
+├── go.mod                 # Go module definition
+├── go.sum                 # Go dependency checksums
+└── README.md             # Documentation
 ```
 
-### Komut Satırı Parametreleri
+### Command Line Parameters
 
-| Parametre    | Açıklama              | Varsayılan                 |
+| Parameter    | Description           | Default                    |
 | ------------ | --------------------- | -------------------------- |
-| `-port`      | HTTP sunucu portu     | `8080`                     |
-| `-host`      | HTTP sunucu host'u    | `0.0.0.0`                  |
-| `-log-level` | Log seviyesi          | `debug`                    |
-| `-config`    | Vendor config dosyası | `configs/oui_vendors.json` |
+| `-port`      | HTTP server port      | `8080`                     |
+| `-host`      | HTTP server host      | `0.0.0.0`                  |
+| `-log-level` | Log level             | `debug`                    |
+| `-config`    | Vendor config file    | `configs/oui_vendors.json` |
 
-### Ortam Değişkenleri
+### Environment Variables
 
-| Değişken       | Açıklama               | Varsayılan |
-| -------------- | ---------------------- | ---------- |
-| `SERVER_PORT`  | HTTP sunucu portu      | `8080`     |
-| `LOG_LEVEL`    | Log seviyesi           | `info`     |
-| `SNMP_TIMEOUT` | SNMP timeout           | `5s`       |
-| `MAX_WORKERS`  | Maksimum worker sayısı | `50`       |
+| Variable       | Description            | Default |
+| -------------- | ---------------------- | ------- |
+| `SERVER_PORT`  | HTTP server port       | `8080`  |
+| `LOG_LEVEL`    | Log level              | `info`  |
+| `SNMP_TIMEOUT` | SNMP timeout           | `5s`    |
+| `MAX_WORKERS`  | Maximum worker count   | `50`    |
 
-## 📊 Desteklenen Cihazlar
+### SNMP Information
 
-### Vendor Desteği
-
-- ✅ **Cisco**: IOS, NX-OS, IOS-XE, ASA
-- ✅ **Juniper**: JunOS (SRX, MX, EX, QFX serisi)
-- ✅ **Huawei**: VRP (S5700, S6700, CloudEngine)
-- ✅ **HP/HPE**: ProCurve, Aruba
-- ✅ **Dell**: PowerConnect, Force10, OS10
-- ✅ **MikroTik**: RouterOS, RouterBoard
-- ✅ **Ubiquiti**: UniFi, EdgeMax
-- ✅ **Fortinet**: FortiGate, FortiOS
-- ✅ **Palo Alto**: PA serisi
-- ✅ **Netgear**: ProSafe serisi
-- ✅ **D-Link**: DGS, DES serisi
-- ✅ **TP-Link**: Managed switch'ler
-- ✅ **Apple**: Mac cihazları
-- ✅ **Intel**: Network kartları
-- ✅ **VMware**: Sanal makineler
-- ✅ **Raspberry Pi**: IoT cihazları
-
-### SNMP Bilgileri
-
-Uygulama aşağıdaki SNMP OID'lerini kullanır:
+The application uses the following SNMP OIDs:
 
 - `1.3.6.1.2.1.1.1.0` - System Description
 - `1.3.6.1.2.1.1.5.0` - System Name
@@ -335,81 +319,83 @@ Uygulama aşağıdaki SNMP OID'lerini kullanır:
 - `1.3.6.1.2.1.1.3.0` - System Uptime
 - `1.3.6.1.2.1.2.2.1.6` - Interface Physical Address
 
-## 🔒 Güvenlik
+## 🔒 Security
 
 ### SNMP Community Strings
 
-SNMP community string'leri hassas bilgilerdir. Üretim ortamında:
+SNMP community strings are sensitive information. In production:
 
-- SNMP'yi sadece güvenli ağlarda kullanın
-- Varsayılan community string'leri değiştirin
-- Mümkünse SNMPv3 kullanın (gelecek sürümlerde)
+- Use SNMP only on secure networks
+- Change default community strings
+- Use SNMPv3 when possible (coming in future releases)
 
-## 🐛 Sorun Giderme
+## 🐛 Troubleshooting
 
-### Yaygın Sorunlar
+### Common Issues
 
-**Cihazlar keşfedilmiyor:**
+**Devices not being discovered:**
 
-- SNMP servisinin aktif olduğunu kontrol edin
-- Community string'lerin doğru olduğunu doğrulayın
-- Firewall kurallarını kontrol edin (UDP 161 portu)
-- SNMP servisinin güvenlik kısmından hangi bağlantılardan bağlantı kabul ettiğini kontrol edin
+- Verify SNMP service is active
+- Confirm community strings are correct
+- Check firewall rules (UDP port 161)
+- Verify SNMP service security settings for allowed connections
 
-**ARP tarama çalışmıyor:**
+**ARP scan not working:**
 
-- Ping komutunun sistem üzerinde mevcut olduğunu kontrol edin
-- ARP komutunun sistem üzerinde mevcut olduğunu kontrol edin
-- Hedef cihazların aynı ağ segmentinde olduğunu kontrol edin
+- Verify ping command is available on the system
+- Verify ARP command is available on the system
+- Ensure target devices are on the same network segment
 
-**Yavaş tarama:**
+**Slow scanning:**
 
-- Worker sayısını artırın (`max_workers`)
-- Timeout değerini azaltın
-- Retry sayısını azaltın
+- Increase worker count (`max_workers`)
+- Decrease timeout value
+- Reduce retry count
 
-**Memory kullanımı yüksek:**
+**High memory usage:**
 
-- Worker sayısını azaltın
-- Tarama aralığını küçültün
+- Reduce worker count
+- Narrow the scan range
 
-### Debug Modu
+### Debug Mode
 
 ```bash
-# Debug logları ile çalıştır
+# Run with debug logs
 ./network-discovery -log-level=debug
 
-# Belirli bir cihazı test et
+# Test a specific device
 curl "http://localhost:8080/api/v1/device/192.168.1.1?community=public"
 
-# Full scan test et
+# Test full scan
 curl -X POST http://localhost:8080/api/v1/network/full-scan \
   -H "Content-Type: application/json" \
   -d '{"network_range":"192.168.1.0/24","scan_type":"full"}'
 ```
 
-### Log Analizi
+### Log Analysis
 
 ```bash
-# Başarılı taramaları filtrele
+# Filter successful scans
 grep "Successfully queried device" /var/log/network-discovery.log
 
-# Hata mesajlarını görüntüle
+# View error messages
 grep "ERROR" /var/log/network-discovery.log
 
-# Performans metrikleri
+# Performance metrics
 grep "Scan completed" /var/log/network-discovery.log
 ```
 
-## 📝 Lisans
+## 📝 License
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için `LICENSE` dosyasına bakın.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## Planlanan geliştirme
+## Planned Development
 
-- 🐳 **Docker Desteği**: Kolay kurulum ve deployment
-- 🔒 **SNMPv3 Desteği**: Authorization ve encryption desteği
+- 🐳 **Docker Support**: Easy installation and deployment
+- 🔒 **SNMPv3 Support**: Authorization and encryption support
+- 🔍 **Vulnerability Scanning**: Security vulnerability detection and assessment
 
 ##
 
-⭐ **Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!**
+⭐ **If you like this project, don't forget to give it a star!**
+
