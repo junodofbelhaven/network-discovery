@@ -19,3 +19,5 @@ coverage.out
 .env
 config.yaml
 secrets.json
+
+frontv2/
