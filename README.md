@@ -278,10 +278,8 @@ network-discovery/
 │   ├── models/            # Data models
 │   ├── snmp/              # SNMP client
 │   └── arp/               # ARP scanner and vendor management
-├── vue-front/             # Frontend source code
-│   └── frontend/          # Vue.js application
 ├── frontend-build/        # Compiled web interface
-│   └── dist/              # Static files
+│   └── dist/              # Static frontend files
 ├── configs/               # Configuration files
 │   └── oui_vendors.json  # Vendor database
 ├── config.yaml            # Main configuration
